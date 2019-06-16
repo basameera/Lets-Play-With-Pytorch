@@ -104,14 +104,17 @@ def main():
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=args.batch_size,
                               shuffle=False,
+                              pin_memory=True,
                               num_workers=num_workers)
     valid_loader = DataLoader(dataset=val_dataset,
                               batch_size=args.valid_batch_size,
                               shuffle=True,
+                              pin_memory=True,
                               num_workers=num_workers)
     test_loader = DataLoader(dataset=test_dataset,
                              batch_size=1,
                              shuffle=True,
+                             pin_memory=True,
                              num_workers=num_workers)
 
     clog('Data Loaders ready')
