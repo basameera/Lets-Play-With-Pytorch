@@ -5,3 +5,4 @@ results/
 ignore/
 save/
 *.pth
+*.zip
