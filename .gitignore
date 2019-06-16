@@ -6,3 +6,4 @@ ignore/
 save/
 *.pth
 *.zip
+*.rar

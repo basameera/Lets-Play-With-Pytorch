@@ -57,7 +57,6 @@ class ImageClassDatasetFromFolder(Dataset):
             self.size = (size, size)
         if isinstance(size, tuple):
             self.size = size
-        print('*******************', self.size)
         self.init_transforms = transforms.Compose([
             transforms.Resize(size=self.size),
             transforms.ToTensor(),

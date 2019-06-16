@@ -86,7 +86,7 @@ class nnTrainer():
     def startup_routines(self):
         self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
         if self.use_cuda:
-            self.cuda()
+            self.model.cuda()
 
     def evaluate(self, test_loader, batch_size=None, verbose=1, sample_weight=None, steps=None, callbacks=None):
         """Returns the loss value & metrics values for the model in test mode.
@@ -233,7 +233,7 @@ class nnTrainer():
 
         # Looping through epochs
         for epoch in range(epochs):
-            # self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
+            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)

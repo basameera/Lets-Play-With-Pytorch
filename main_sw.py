@@ -99,16 +99,21 @@ def main():
     train_dataset, val_dataset, test_dataset = random_split(
         custom_dataset, custom_dataset.getSplitByPercentage(0.8))
 
+    num_workers = 4
+
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=args.batch_size,
-                              shuffle=False)
+                              shuffle=False,
+                              num_workers=num_workers)
     valid_loader = DataLoader(dataset=val_dataset,
                               batch_size=args.valid_batch_size,
-                              shuffle=True)
+                              shuffle=True,
+                              num_workers=num_workers)
     test_loader = DataLoader(dataset=test_dataset,
                              batch_size=1,
-                             shuffle=True)
-    print(type(test_loader))
+                             shuffle=True,
+                             num_workers=num_workers)
+
     clog('Data Loaders ready')
 
     settings = dict()
@@ -136,7 +141,7 @@ def main():
         in_channels=settings['in_channels'], out_channels=settings['out_channels'])
     print(model.eval())
 
-    trainer = swt.nnTrainer(model=model, model_name=__file__)
+    trainer = swt.nnTrainer(model=model, model_name=__file__, use_cuda=settings['use cuda'])
     trainer.compile(optim.SGD)
 
     pytorch_total_params = sum(p.numel()
@@ -146,11 +151,11 @@ def main():
     # Train model
     if args.train:
         clog('Training Started...\n')
+        start_time = time.time()
         history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,
                               show_progress=args.show_progress, save_plot=args.save_plot)
-
-        print('history')
-        print(history)
+        clog("Training time: {} seconds | Device: {}".format(time.time() - start_time, settings['device']))
+        clog('History',history)
 
     # save model
     if args.train and args.save_model:
@@ -164,5 +169,6 @@ def main():
 
 # run
 if __name__ == '__main__':
+    print('\n\n')
     clog(__file__)
     main()
