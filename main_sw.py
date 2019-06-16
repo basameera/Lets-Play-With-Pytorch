@@ -1,14 +1,46 @@
 """Project Doc String - Python program tempalte"""
 # imports
 from SkunkWork.pytorchCustomDataset import ImageClassDatasetFromFolder
-from pytorch_model import CNN
+import SkunkWork.Trainer as swt
+from SkunkWork.utils import prettyPrint, clog
+# 
 from torch.utils.data import DataLoader, random_split
 import torch
 from torch import cuda
+import torch.nn as nn
+import torch.nn.functional as F
 import argparse
-from bass_util import prettyPrint, clog
 import time
+
+
+class nnModel(nn.Module):
+
+    def __init__(self, in_channels=1, out_channels=10):
+
+        # Basics
+        super(nnModel, self).__init__()
+
+        # Initializing all layers
+        self.conv1 = nn.Conv2d(in_channels, 20, 5, 1)
+        self.conv2 = nn.Conv2d(20, 50, 5, 1)
+        self.fc1 = nn.Linear(800, 500) # mnist
+        self.fc2 = nn.Linear(500, out_channels)
+
+    def forward(self, input):
+        x = F.relu(self.conv1(input))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = x.view(x.shape[0], -1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
 # custom classes and functions
+def test():
+    trainer = swt.nnTrainer()
+    
+
 def cmdArgs():
     parser = argparse.ArgumentParser(
         description='PyTorch NN\n- by Bassandaruwan')
@@ -46,9 +78,9 @@ def main():
     prettyPrint(args.__dict__, 'cmd args')
 
     # Pytorch Dataset
-    norm_mean = [0.6097, 0.5079, 0.4260]
-    norm_std = [0.2694, 0.2605, 0.2625]
-    data_folder_path = 'data/csmd_data'
+    norm_mean = [0.1349952518939972]
+    norm_std = [0.30401742458343506]
+    data_folder_path = 'data/MNIST'
     custom_dataset = ImageClassDatasetFromFolder(data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std)
     print('Classes:', custom_dataset.getClasses())
     print('Decode Classes:', custom_dataset.getInvClasses())
@@ -69,10 +101,6 @@ def main():
     
     clog('Data Loaders ready')
 
-    # for batch_idx, (data, target) in enumerate(train_loader):
-
-
-
     settings = dict()
     use_cuda = not args.no_cuda and cuda.is_available()
 
@@ -83,11 +111,11 @@ def main():
         torch.backends.cudnn.benchmark = False
 
     # settings
-    settings['CUDA'] = use_cuda
+    settings['use cuda'] = use_cuda
     settings['device'] = 'cpu' if (not use_cuda) else ('cuda:'+str(cuda.current_device()))
     settings['device'] = torch.device(settings['device'])
-    settings['in_channels'] = 3
-    settings['out_channels'] = 2
+    settings['in_channels'] = 1
+    settings['out_channels'] = 10
 
     prettyPrint(settings, 'settings')
 
@@ -131,4 +159,5 @@ def main():
 # run
 if __name__ == '__main__':
     clog(__file__)
-    main()
+    # main()
+    test()

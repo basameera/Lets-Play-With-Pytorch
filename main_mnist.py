@@ -1,6 +1,6 @@
 """Project Doc String - Python program tempalte"""
 # imports
-from pytorch_custom_dataset import ImageClassDatasetFromFolder
+from SkunkWork.pytorchCustomDataset import ImageClassDatasetFromFolder
 from pytorch_model import CNN
 from torch.utils.data import DataLoader, random_split
 import torch
