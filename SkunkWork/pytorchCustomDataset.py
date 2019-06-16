@@ -24,7 +24,7 @@ class ImageClassDatasetFromFolder(Dataset):
     """From Tutorial - https://totoys.github.io/posts/2019-4-10-what-is-torch.utils.data.Dataset-really/
     More info - https://github.com/utkuozbulak/pytorch-custom-dataset-examples#using-torchvision-transforms"""
 
-    def __init__(self, path, int_classes=False, norm_data=False, norm_mean=None, norm_std=None):
+    def __init__(self, path, int_classes=False, norm_data=False, norm_mean=None, norm_std=None, size=28):
         self.path = path
         self.int_classes = int_classes
         self.norm_data = norm_data
@@ -52,9 +52,9 @@ class ImageClassDatasetFromFolder(Dataset):
             self.fileList += tempList
 
         # image transformations
-        sz = 256
+        self.size = size # TODO : check if tuple and adjust properly
         self.init_transforms = transforms.Compose([
-            transforms.Resize(size=(sz, sz)),
+            transforms.Resize(size=(self.size, self.size)),
             transforms.ToTensor(),
         ])
 

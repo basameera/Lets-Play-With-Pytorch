@@ -23,19 +23,15 @@ import time
 
 class nnTrainer(nn.Module):
 
-    def __init__(self, in_channels=1, out_channels=10, optimizer=optim.SGD, lr=0.01, use_cuda=None, model_name=''):
+    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model'):
 
         # Basics
         super(nnTrainer, self).__init__()
+        self.model = model
         self.model_name = model_name.split('.')[0]
         self.results_path = 'results'
         if not os.path.exists(self.results_path):
             os.makedirs(self.results_path)
-
-        # Settings
-        self.optim_type = optimizer
-        self.optimizer = None
-        self.lr = lr
 
         # Use CUDA?
         self.use_cuda = use_cuda if (use_cuda != None and cuda.is_available()) else cuda.is_available()
@@ -48,23 +44,26 @@ class nnTrainer(nn.Module):
         self.valid_loss = 0
         self.train_loss_hist = []
         self.valid_loss_hist = []
-
-        # Initializing all layers
-        self.conv1 = nn.Conv2d(in_channels, 20, 5, 1)
-        self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        # self.fc1 = nn.Linear(800, 500) # mnist
-        self.fc1 = nn.Linear(186050, 500) # cs md
-        self.fc2 = nn.Linear(500, out_channels)
+    
+    def compile(self, optimizer, lr=0.01, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss(reduction='sum'), metrics=None, loss_weights=None, sample_weight_mode=None, weighted_metrics=None, target_tensors=None):
+        self.optim_type = optimizer
+        self.optimizer = None
+        self.lr = lr
+        self.criterion = criterion
+        self.valid_criterion = valid_criterion
+        # TODO:
+        self.metrics = metrics
 
         # Running startup routines
         self.startup_routines()
+        clog('compiled')
 
     def startup_routines(self):
-        self.optimizer = self.optim_type(self.parameters(), lr=self.lr)
+        self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
         if self.use_cuda:
             self.cuda()
 
-    def predict(self, input):
+    def predict(self, input): #TODO make input as the test_loader
         # Switching off autograd
         with torch.no_grad():
             # Use CUDA?
@@ -73,21 +72,11 @@ class nnTrainer(nn.Module):
             # Running inference
             return self(input)
 
-    def forward(self, input):
-        x = F.relu(self.conv1(input))
-        x = F.max_pool2d(x, 2, 2)
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = x.view(x.shape[0], -1)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
         # Preparations for fit step
         self.train_loss = 0  # Resetting training loss
-        self.train()        # Switching to autograd
+        self.model.train()        # Switching to autograd
 
         for batch_idx, (data, target) in enumerate(training_loader):
             if self.use_cuda:
@@ -96,9 +85,10 @@ class nnTrainer(nn.Module):
             self.optimizer.zero_grad()
 
             # Forward pass
-            output = self(data)
+            output = self.model(data)
             # Calculating loss
-            loss = F.cross_entropy(output, target)
+            # loss = F.cross_entropy(output, target)
+            loss = self.criterion(output, target)
             self.train_loss += loss.item()  # Adding to epoch loss
 
             # Backward pass and optimization
@@ -136,10 +126,11 @@ class nnTrainer(nn.Module):
                     target = target.cuda()
 
                 # Forward pass
-                output = self.forward(input)
+                output = self.model(input)
 
                 # Calculating loss
-                loss = F.cross_entropy(output, target, reduction='sum')
+                # loss = F.cross_entropy(output, target, reduction='sum')
+                loss = self.valid_criterion(output, target)
                 self.valid_loss += loss.item()  # Adding to epoch loss
 
                 # accuracy
@@ -161,7 +152,7 @@ class nnTrainer(nn.Module):
                 ))
 
     def fit(self, training_loader, validation_loader=None, epochs=2, show_progress=True, save_best=False, save_plot=False):
-
+        history = dict() # TODO 
         # Helpers
         best_validation = 1e5
 
@@ -188,6 +179,10 @@ class nnTrainer(nn.Module):
         if save_plot:
             self.plot_loss()
 
+        history['train_loss'] = self.train_loss_hist
+        history['valid_loss'] = self.valid_loss_hist
+        return history
+
     def save_loss(self):
         path = self.results_path + '/' + self.model_name + '_loss_data.json'
         clog('Saving Loss to file:', path)
@@ -205,12 +200,28 @@ class nnTrainer(nn.Module):
             jdata = json.loads(jfile.read())
             return jdata['train_loss'], jdata['valid_loss']
 
-    def save(self, path='cnn_model.pth'):
+    def save(self, path='model_states.pth'):
+        """Save Model States
+        
+        Keyword Arguments:
+            path {str} -- Path to the saving model (default: {'model_states.pth'})
+        """
         if not '.pth' in path:
             path += '.pth'
         path = self.results_path+'/'+ self.model_name + '_' + path
         clog('Saving model: {}'.format(path))
-        # torch.save(self.state_dict(), path) # Normal save
+        torch.save(self.state_dict(), path) # Normal save
+    
+    def saveFull(self, path='model.pth'):
+        """Save Full Model
+        
+        Keyword Arguments:
+            path {str} -- Path to the saving model (default: {'model.pth'})
+        """
+        if not '.pth' in path:
+            path += '.pth'
+        path = self.results_path+'/'+ self.model_name + '_' + path
+        clog('Saving Full model: {}'.format(path))
         torch.save(self, path) # For visualizing - need the whole model
 
     def plot_loss(self, plot_name='loss_plot'):
@@ -235,17 +246,6 @@ class nnTrainer(nn.Module):
         path = self.results_path+'/'+plot_name
         clog('Saving loss plot: {}'.format(path))
         plt.savefig(path)
-
-    @staticmethod
-    def load(train=False, path='results/cnn_model.pth'):
-        if not '.pth' in path:
-            path += '.pth'
-
-        model = CNN()
-        model.load_state_dict(torch.load(path))
-        if train:
-            model.startup_routines()
-        return model
 
 
 # main funciton
