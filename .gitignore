@@ -1,0 +1,7 @@
+.vscode
+*.pyc
+data/
+results/
+ignore/
+save/
+*.pth
