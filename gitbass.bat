@@ -6,13 +6,35 @@ IF "%commitMsg%"=="" (
     echo ERROR: Need Commit Message as argument
     exit /B
 )
-echo %commitMsg%
-:: check repo for pulls
+
+echo # Commit message: %commitMsg%
+
+echo.
+echo # Git pull
+echo.
 git pull
 
-:: lets push
+echo.
+echo # Checking git status
+echo.
 git status
+
+echo.
+echo # Git add
+echo.
 git add .
+
+echo.
+echo # Git commit
+echo.
 git commit -m %commitMsg%
+
+echo.
+echo # Git push
+echo.
 git push
+
+echo.
+echo # Checking git status
+echo.
 git status
