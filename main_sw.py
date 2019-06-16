@@ -81,7 +81,7 @@ def cmdArgs():
     return parser.parse_args()
 
 
-def test():
+def main():
     args = cmdArgs()
     prettyPrint(args.__dict__, 'cmd args')
 
@@ -90,7 +90,7 @@ def test():
     norm_std = [0.30401742458343506]
     data_folder_path = 'data/MNIST'
     custom_dataset = ImageClassDatasetFromFolder(
-        data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std)
+        data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std, size=28)
     print('Classes:', custom_dataset.getClasses())
     print('Decode Classes:', custom_dataset.getInvClasses())
     print('Dataset split radio (train, validation, test):',
@@ -108,7 +108,7 @@ def test():
     test_loader = DataLoader(dataset=test_dataset,
                              batch_size=1,
                              shuffle=True)
-
+    print(type(test_loader))
     clog('Data Loaders ready')
 
     settings = dict()
@@ -147,125 +147,22 @@ def test():
     if args.train:
         clog('Training Started...\n')
         history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,
-                  show_progress=args.show_progress, save_plot=args.save_plot)
-        
+                              show_progress=args.show_progress, save_plot=args.save_plot)
+
         print('history')
         print(history)
 
     # save model
     if args.train and args.save_model:
-        trainer.save(path='model_'+str(args.epochs))
+        trainer.saveModel(path='model_'+str(args.epochs), full=False)
 
     if args.eval:
         # test model
         clog('Prediction Test model')
-        correct_pred = 0
-        for i, (input, target) in enumerate(test_loader):
-            output = trainer.predict(input)
-            status = ''
-            if target[0].item() == torch.argmax(output[0]):
-                status = 'Correct'
-                correct_pred += 1
-            # print('Target: {} | Prediction: {} | status: {}'.format( target[0].item(), torch.argmax(output[0]), status ))
-
-        print('\n\nAccuracy: [{}/{}] - ({:.0f}%)\n'.format(correct_pred,
-                                                           len(test_loader), (correct_pred*100/len(test_loader))))
-
-
-# main funciton
-def main():
-    args = cmdArgs()
-    prettyPrint(args.__dict__, 'cmd args')
-
-    # Pytorch Dataset
-    norm_mean = [0.1349952518939972]
-    norm_std = [0.30401742458343506]
-    data_folder_path = 'data/MNIST'
-    custom_dataset = ImageClassDatasetFromFolder(
-        data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std)
-    print('Classes:', custom_dataset.getClasses())
-    print('Decode Classes:', custom_dataset.getInvClasses())
-    print('Dataset split radio (train, validation, test):',
-          custom_dataset.getSplitByPercentage(0.8))
-
-    train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, custom_dataset.getSplitByPercentage(0.8))
-
-    train_loader = DataLoader(dataset=train_dataset,
-                              batch_size=args.batch_size,
-                              shuffle=False)
-    valid_loader = DataLoader(dataset=val_dataset,
-                              batch_size=args.valid_batch_size,
-                              shuffle=True)
-    test_loader = DataLoader(dataset=test_dataset,
-                             batch_size=1,
-                             shuffle=True)
-
-    clog('Data Loaders ready')
-
-    settings = dict()
-    use_cuda = not args.no_cuda and cuda.is_available()
-
-    # reproducibility
-    torch.manual_seed(0)
-    if use_cuda:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-    # settings
-    settings['use cuda'] = use_cuda
-    settings['device'] = 'cpu' if (not use_cuda) else (
-        'cuda:'+str(cuda.current_device()))
-    settings['device'] = torch.device(settings['device'])
-    settings['in_channels'] = 1
-    settings['out_channels'] = 10
-
-    prettyPrint(settings, 'settings')
-
-    clog('Model Ready')
-    # Instantiate mode
-    model = CNN(in_channels=settings['in_channels'],
-                out_channels=settings['out_channels'], use_cuda=use_cuda, model_name=__file__)
-    print()
-    print(model.eval())
-
-    pytorch_total_params = sum(p.numel()
-                               for p in model.parameters() if p.requires_grad)
-    clog('Model Total Trainable parameters: {}'.format(pytorch_total_params))
-
-    # Train model
-    if args.train:
-        clog('Training Started...\n')
-        model.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,
-                  show_progress=args.show_progress, save_plot=args.save_plot)
-
-    # save model
-    if args.train and args.save_model:
-        model.save(path='model_'+str(args.epochs))
-
-    # load model
-    if args.load:
-        clog('Loading model')
-        model = CNN().load()
-
-    if args.eval:
-        # test model
-        clog('Prediction Test model')
-        correct_pred = 0
-        for i, (input, target) in enumerate(test_loader):
-            output = model.predict(input)
-            status = ''
-            if target[0].item() == torch.argmax(output[0]):
-                status = 'Correct'
-                correct_pred += 1
-            # print('Target: {} | Prediction: {} | status: {}'.format( target[0].item(), torch.argmax(output[0]), status ))
-
-        print('\n\nAccuracy: [{}/{}] - ({:.0f}%)\n'.format(correct_pred,
-                                                           len(test_loader), (correct_pred*100/len(test_loader))))
+        output = trainer.predict(test_loader, show_progress=True)
 
 
 # run
 if __name__ == '__main__':
     clog(__file__)
-    # main()
-    test()
+    main()

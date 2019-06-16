@@ -52,9 +52,14 @@ class ImageClassDatasetFromFolder(Dataset):
             self.fileList += tempList
 
         # image transformations
-        self.size = size # TODO : check if tuple and adjust properly
+        
+        if isinstance(size, int):
+            self.size = (size, size)
+        if isinstance(size, tuple):
+            self.size = size
+        print('*******************', self.size)
         self.init_transforms = transforms.Compose([
-            transforms.Resize(size=(self.size, self.size)),
+            transforms.Resize(size=self.size),
             transforms.ToTensor(),
         ])
 

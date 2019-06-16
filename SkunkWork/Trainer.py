@@ -2,26 +2,31 @@
 
 # imports
 from __future__ import print_function
-from SkunkWork.utils import prettyPrint, clog
+from .utils import prettyPrint, clog
 import json
 import os
 
 # Importing PyTorch tools
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import datasets, transforms
+# import torch.nn.functional as F
+# import torch.optim as optim
+# from torchvision import datasets, transforms
 from torch import cuda
 
 # Importing other libraries
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+# import time
 # custom classes and functions
 
+all_metrics = [
+    'loss',
+    'accuracy'
+]
 
-class nnTrainer(nn.Module):
+
+class nnTrainer():
 
     def __init__(self, model, use_cuda=None, model_name='nnTrainer_model'):
 
@@ -34,8 +39,10 @@ class nnTrainer(nn.Module):
             os.makedirs(self.results_path)
 
         # Use CUDA?
-        self.use_cuda = use_cuda if (use_cuda != None and cuda.is_available()) else cuda.is_available()
-        self.device = 'cpu' if (not self.use_cuda) else ('cuda:'+str(cuda.current_device()))
+        self.use_cuda = use_cuda if (
+            use_cuda != None and cuda.is_available()) else cuda.is_available()
+        self.device = 'cpu' if (not self.use_cuda) else (
+            'cuda:'+str(cuda.current_device()))
         self.device = torch.device(self.device)
         clog('Model CUDA:', self.use_cuda, '| Device:', self.device)
 
@@ -44,8 +51,26 @@ class nnTrainer(nn.Module):
         self.valid_loss = 0
         self.train_loss_hist = []
         self.valid_loss_hist = []
-    
+
     def compile(self, optimizer, lr=0.01, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss(reduction='sum'), metrics=None, loss_weights=None, sample_weight_mode=None, weighted_metrics=None, target_tensors=None):
+        """Configures the model for training.
+
+        Arguments:
+            optimizer {[type]} -- [description]
+
+        Keyword Arguments:
+            lr {float} -- [description] (default: {0.01})
+            criterion {[type]} -- [description] (default: {nn.CrossEntropyLoss()})
+            valid_criterion {[type]} -- [description] (default: {nn.CrossEntropyLoss(reduction='sum')})
+            metrics {[type]} -- [description] (default: {None})
+            loss_weights {[type]} -- [description] (default: {None})
+            sample_weight_mode {[type]} -- [description] (default: {None})
+            weighted_metrics {[type]} -- [description] (default: {None})
+            target_tensors {[type]} -- [description] (default: {None})
+
+        Returns:
+            A `history` dict. It's a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).
+        """
         self.optim_type = optimizer
         self.optimizer = None
         self.lr = lr
@@ -63,14 +88,64 @@ class nnTrainer(nn.Module):
         if self.use_cuda:
             self.cuda()
 
-    def predict(self, input): #TODO make input as the test_loader
+    def evaluate(self, test_loader, batch_size=None, verbose=1, sample_weight=None, steps=None, callbacks=None):
+        """Returns the loss value & metrics values for the model in test mode.
+
+        Computation is done in batches.
+
+        Arguments:
+            test_loader {[type]} -- [description]
+
+        Keyword Arguments:
+            batch_size {[type]} -- [description] (default: {None})
+            verbose {int} -- [description] (default: {1})
+            sample_weight {[type]} -- [description] (default: {None})
+            steps {[type]} -- [description] (default: {None})
+            callbacks {[type]} -- [description] (default: {None})
+        """
+        # TODO make this work - similar to `validate` method
+        pass
+
+    def predict(self, test_loader, show_progress=True): 
+        # Preparations for validation step
+        self.valid_loss = 0  # Resetting validation loss
+        correct = 0
         # Switching off autograd
         with torch.no_grad():
-            # Use CUDA?
-            if self.use_cuda:
-                input = input.cuda()
-            # Running inference
-            return self(input)
+
+            # Looping through data
+            for input, target in test_loader:
+
+                # Use CUDA?
+                if self.use_cuda:
+                    input = input.cuda()
+                    target = target.cuda()
+
+                # Forward pass
+                output = self.model(input)
+
+                # Calculating loss
+                # loss = F.cross_entropy(output, target, reduction='sum')
+                loss = self.valid_criterion(output, target)
+                self.valid_loss += loss.item()  # Adding to epoch loss
+
+                # accuracy
+                # get the index of the max log-probability
+                pred = output.argmax(dim=1, keepdim=True)
+                correct += pred.eq(target.view_as(pred)).sum().item()
+
+            self.valid_loss /= len(test_loader.dataset)
+
+            # Adding loss to history
+            self.valid_loss_hist.append(self.valid_loss)
+
+        if show_progress:
+            print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+                self.valid_loss,
+                correct,
+                len(test_loader.dataset),
+                100. * correct / len(test_loader.dataset)
+            ))
 
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
@@ -97,20 +172,20 @@ class nnTrainer(nn.Module):
 
             if show_progress:
                 if batch_idx % int(len(training_loader)*0.10) == 0:
-                # if batch_idx % 1 == 0:
+                    # if batch_idx % 1 == 0:
                     print('Train Epoch: {}/{} [{:06d}/{:06d} ({:.0f}%)]\tLoss: {:.6f}'.format(
                         epoch+1,
                         n_epochs,
-                        batch_idx*len(data), 
+                        batch_idx*len(data),
                         len(training_loader.dataset),
-                        100. * batch_idx / len(training_loader), 
+                        100. * batch_idx / len(training_loader),
                         loss))
 
         # Adding loss to history
         self.train_loss_hist.append(self.train_loss / len(training_loader))
 
     def validation_step(self, validation_loader, show_progress=False):
-        self.eval()
+        self.model.eval()
         # Preparations for validation step
         self.valid_loss = 0  # Resetting validation loss
         correct = 0
@@ -145,20 +220,20 @@ class nnTrainer(nn.Module):
 
         if show_progress:
             print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-                self.valid_loss, 
-                correct, 
+                self.valid_loss,
+                correct,
                 len(validation_loader.dataset),
                 100. * correct / len(validation_loader.dataset)
-                ))
+            ))
 
     def fit(self, training_loader, validation_loader=None, epochs=2, show_progress=True, save_best=False, save_plot=False):
-        history = dict() # TODO 
+        history = dict()
         # Helpers
         best_validation = 1e5
 
         # Looping through epochs
         for epoch in range(epochs):
-            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
+            # self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)
@@ -170,7 +245,7 @@ class nnTrainer(nn.Module):
                     best_validation = self.valid_loss_hist[-1]
 
         # Switching to eval
-        self.eval()
+        self.model.eval()
 
         # save loss to file
         self.save_loss()
@@ -179,6 +254,7 @@ class nnTrainer(nn.Module):
         if save_plot:
             self.plot_loss()
 
+        # TODO use all_metrics to decide what to return
         history['train_loss'] = self.train_loss_hist
         history['valid_loss'] = self.valid_loss_hist
         return history
@@ -192,7 +268,7 @@ class nnTrainer(nn.Module):
 
         with open(path, 'w', encoding='utf-8') as outfile:
             json.dump(data, outfile, ensure_ascii=False, indent=2)
-        
+
     def load_loss(self):
         path = self.results_path + '/' + self.model_name + '_loss_data.json'
         clog('Loading Loss from file:', path)
@@ -200,29 +276,29 @@ class nnTrainer(nn.Module):
             jdata = json.loads(jfile.read())
             return jdata['train_loss'], jdata['valid_loss']
 
-    def save(self, path='model_states.pth'):
-        """Save Model States
-        
+    def saveModel(self, path='model', full=False):
+        """Save Model
+
         Keyword Arguments:
-            path {str} -- Path to the saving model (default: {'model_states.pth'})
+            path {str} -- [description] (default: {'model'})
+            full {bool} -- [description] (default: {False})
         """
+        if full:  # full_model
+            path = '_full'
+        else:  # model_states
+            path += '_states'
+
+        path = self.results_path+'/' + self.model_name + '_' + path
+
         if not '.pth' in path:
             path += '.pth'
-        path = self.results_path+'/'+ self.model_name + '_' + path
-        clog('Saving model: {}'.format(path))
-        torch.save(self.state_dict(), path) # Normal save
-    
-    def saveFull(self, path='model.pth'):
-        """Save Full Model
-        
-        Keyword Arguments:
-            path {str} -- Path to the saving model (default: {'model.pth'})
-        """
-        if not '.pth' in path:
-            path += '.pth'
-        path = self.results_path+'/'+ self.model_name + '_' + path
-        clog('Saving Full model: {}'.format(path))
-        torch.save(self, path) # For visualizing - need the whole model
+        if full:
+            clog('Saving Full model: {}'.format(path))
+            # For visualizing - need the whole model
+            torch.save(self.model, path)
+        else:
+            clog('Saving model states: {}'.format(path))
+            torch.save(self.model.state_dict(), path)  # Normal save
 
     def plot_loss(self, plot_name='loss_plot'):
         plot_name = self.model_name + '_' + plot_name
@@ -239,7 +315,8 @@ class nnTrainer(nn.Module):
         # Axis labels
         plt.xlabel('Epochs')
         plt.ylabel('Loss')
-        plt.title('Pytorch Model Training and Validation loss ['+self.model_name+']')
+        plt.title(
+            'Pytorch Model Training and Validation loss ['+self.model_name+']')
         plt.legend(loc='upper right')
 
         # saving plot

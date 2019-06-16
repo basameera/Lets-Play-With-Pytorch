@@ -1,1 +1,1 @@
-name = 'mainpackage'
+name = 'SkunkWork'
