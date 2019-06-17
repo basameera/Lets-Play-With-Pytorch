@@ -169,8 +169,16 @@ class nnTrainer():
 
                 # MSE loss acc
                 pred = torch.round(output)
-                correct += (pred.eq(torch.round(target)
-                                    ).sum().item())/target.shape[0]
+                target = torch.round(target)
+
+                for i in range(pred.shape[0]):
+                    eq = pred[i].eq(target[i])
+                    correct += eq.sum().item()/pred.shape[1]
+
+                # print(pred.shape)
+                # raise NotImplementedError
+
+                # correct += (pred.eq(torch.round(target)).sum().item())/target.shape[0]
 
                 # accuracy
                 # get the index of the max log-probability
@@ -179,7 +187,7 @@ class nnTrainer():
                 # correct += pred.eq(target.view_as(pred)).sum().item()
 
             # for crossEntropy
-            # self.valid_loss /= len(validation_loader.dataset)
+            self.valid_loss /= len(validation_loader.dataset)
 
             # Adding loss to history
             self.valid_loss_hist.append(self.valid_loss)
@@ -187,7 +195,7 @@ class nnTrainer():
         if show_progress:
             print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
                 self.valid_loss,
-                correct,
+                int(correct),
                 len(validation_loader.dataset),
                 100. * correct / len(validation_loader.dataset)
             ))
@@ -199,8 +207,7 @@ class nnTrainer():
 
         # Looping through epochs
         for epoch in range(epochs):
-            self.fit_step(training_loader, epoch, epochs,
-                          show_progress)  # Optimizing
+            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)
@@ -227,8 +234,10 @@ class nnTrainer():
         return history
 
     def predict(self, test_loader, show_progress=True):
+        self.model.eval() # TODO: is this necessary during predictions.
         # Preparations for validation step
-        self.valid_loss = 0  # Resetting validation loss
+        self.test_loss_hist = []
+        self.test_loss = 0  # Resetting validation loss
         correct = 0
         # Switching off autograd
         with torch.no_grad():
@@ -247,7 +256,7 @@ class nnTrainer():
                 # Calculating loss
                 # loss = F.cross_entropy(output, target, reduction='sum')
                 loss = self.valid_criterion(output, target)
-                self.valid_loss += loss.item()  # Adding to epoch loss
+                self.test_loss += loss.item()  # Adding to epoch loss
 
                 # accuracy
                 # get the index of the max log-probability
@@ -256,18 +265,22 @@ class nnTrainer():
 
                 # MSE loss acc
                 pred = torch.round(output)
-                correct += (pred.eq(torch.round(target)).sum().item())/target.shape[0]
+                target = torch.round(target)
+
+                for i in range(pred.shape[0]):
+                    eq = pred[i].eq(target[i])
+                    correct += eq.sum().item()/pred.shape[1]
 
             # for crossEntropy
-            # self.valid_loss /= len(test_loader.dataset)
+            self.test_loss /= len(test_loader.dataset)
 
             # Adding loss to history
-            self.valid_loss_hist.append(self.valid_loss)
+            self.test_loss_hist.append(self.test_loss)
 
         if show_progress:
-            print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-                self.valid_loss,
-                correct,
+            print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+                self.test_loss,
+                int(correct),
                 len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset)
             ))

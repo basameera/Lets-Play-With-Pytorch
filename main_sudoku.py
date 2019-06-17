@@ -1,8 +1,8 @@
 """Lets solve Sudoku - https://www.kaggle.com/bryanpark/sudoku """
 # imports
-from SkunkWork.pytorchCustomDataset import readCSVfile, datasetFromCSV
-import SkunkWork.Trainer as swt
 from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
+from SkunkWork.pytorchCustomDataset import readCSVfile, datasetFromCSV, ImageClassDatasetFromFolder
+import SkunkWork.Trainer as swt
 #
 from torch.utils.data import DataLoader, random_split
 import torch
@@ -15,7 +15,7 @@ import argparse
 import time
 import numpy as np
 
-
+# TODO: make the model - conv2D
 class sudokuModel(nn.Module):
 
     def __init__(self, in_channels=1, out_channels=10):
@@ -102,7 +102,12 @@ def main():
                              pin_memory=True,
                              num_workers=num_workers)
 
+    # for input, _ in test_loader:
+    #     print(input.shape)
+
     clog('Data Loaders ready')
+
+    # raise NotImplementedError
 
     settings = dict()
     use_cuda = not args.no_cuda and cuda.is_available()
@@ -131,9 +136,9 @@ def main():
 
     trainer = swt.nnTrainer(
         model=model, model_name=__file__, use_cuda=settings['use cuda'])
-    
+
     trainer.compile(optim.SGD, criterion=nn.MSELoss(),
-                    valid_criterion=nn.MSELoss()) #reduction='mean'
+                    valid_criterion=nn.MSELoss())  # reduction='mean'
 
     pytorch_total_params = sum(p.numel()
                                for p in model.parameters() if p.requires_grad)
@@ -159,29 +164,6 @@ def main():
         output = trainer.predict(test_loader, show_progress=True)
 
 
-def test():
-
-    print('Before Norm data ================================================')
-    data_folder_path = 'data/sudoku/sudoku.csv'
-    custom_dataset = datasetFromCSV(
-        data_folder_path, norm_data=False)
-    print(len(custom_dataset))
-    print(getSplitByPercentage(0.8, len(custom_dataset)))
-
-    train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
-
-    train_loader = DataLoader(dataset=train_dataset,
-                              batch_size=64,
-                              shuffle=False)
-    valid_loader = DataLoader(dataset=val_dataset,
-                              batch_size=32,
-                              shuffle=True)
-    test_loader = DataLoader(dataset=test_dataset,
-                             batch_size=1,
-                             shuffle=True)
-
-
 # run
 if __name__ == '__main__':
     print('\n')
@@ -191,3 +173,4 @@ if __name__ == '__main__':
 
     main()
     # test()
+    # qwe()

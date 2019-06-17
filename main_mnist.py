@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader, random_split
 import torch
 from torch import cuda
 import argparse
-from SkunkWork.utils import prettyPrint, clog
+from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
 import time
 # custom classes and functions
 def cmdArgs():
@@ -52,10 +52,10 @@ def main():
     custom_dataset = ImageClassDatasetFromFolder(data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std)
     print('Classes:', custom_dataset.getClasses())
     print('Decode Classes:', custom_dataset.getInvClasses())
-    print('Dataset split radio (train, validation, test):', custom_dataset.getSplitByPercentage(0.8))
+    print('Dataset split radio (train, validation, test):', getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, custom_dataset.getSplitByPercentage(0.8))
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=args.batch_size,

@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, random_split
 import os
 from PIL import Image
 import numpy as np
-from .utils import getListOfFiles
+from .utils import getListOfFiles, getSplitByPercentage
 import pandas as pd
 import numpy as np
 import time
@@ -203,10 +203,10 @@ def main():
     print(len(custom_dataset))
     print(custom_dataset.getClasses())
     print(custom_dataset.getInvClasses())
-    print(custom_dataset.getSplitByPercentage())
+    print(getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, custom_dataset.getSplitByPercentage(0.8))
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=32,
@@ -218,7 +218,9 @@ def main():
 
     for i, image in enumerate(train_loader, 0):
         numpy_image = image[0].numpy()
+        print('img', numpy_image.shape)
         batch_mean = np.mean(numpy_image, axis=(0, 2, 3))
+        print('batch_mean', batch_mean.shape)
         batch_std = np.std(numpy_image, axis=(0, 2, 3))
         train_mean.append(batch_mean)
         train_std.append(batch_std)
@@ -236,7 +238,7 @@ def main():
         data_folder_path, int_classes=True, norm_data=True, norm_mean=train_mean, norm_std=train_std)
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, custom_dataset.getSplitByPercentage(0.8))
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=32,
