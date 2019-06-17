@@ -50,7 +50,7 @@ Run `pip install netron`
 Then `netron [FILE]` or `import netron`; `netron.start('[FILE]')`
 
 ## To Do;
-- [ ] Auto run git pull when vs code is started
+- [ ] **Trainer** - use of different **criterions - Why `reduction` in validation?**
 - [x] **Nvidia Drivers NOT available** - https://www.nvidia.com/download/driverResults.aspx/135394/en-us
 - [ ] **Trainer class** - Finish TODOs - https://keras.io/models/sequential/
 - [ ] Custom dataset - [SubsetRandomSampler](https://pytorch.org/docs/master/data.html#torch.utils.data.SubsetRandomSampler)

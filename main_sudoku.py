@@ -1,6 +1,6 @@
-"""Project Doc String - Python program tempalte"""
+"""Lets solve Sudoku - https://www.kaggle.com/bryanpark/sudoku """
 # imports
-from SkunkWork.pytorchCustomDataset import ImageClassDatasetFromFolder
+from SkunkWork.pytorchCustomDataset import readCSVfile, datasetFromCSV
 import SkunkWork.Trainer as swt
 from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
 #
@@ -13,39 +13,27 @@ import torch.optim as optim
 #
 import argparse
 import time
+import numpy as np
 
 
-class customModel(nn.Module):
+class sudokuModel(nn.Module):
 
     def __init__(self, in_channels=1, out_channels=10):
 
         # Basics
-        super(customModel, self).__init__()
+        super(sudokuModel, self).__init__()
 
         # Initializing all layers
-        self.conv1 = nn.Conv2d(in_channels, 20, 5, 1)
-        self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(800, 500)  # mnist
-        self.fc2 = nn.Linear(500, out_channels)
+        self.fc1 = nn.Linear(in_channels, 100)
+        self.fc2 = nn.Linear(100, 100)
+        # self.fc3 = nn.Linear(100, 100)
+        self.fc4 = nn.Linear(100, out_channels)
 
     def forward(self, input):
-        x = F.relu(self.conv1(input))
-        x = F.max_pool2d(x, 2, 2)
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = x.view(x.shape[0], -1)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-
-    @staticmethod
-    def load(path='results/cnn_model.pth'):
-        if not '.pth' in path:
-            path += '.pth'
-
-        model = customModel()
-        model.load_state_dict(torch.load(path))
-        return model
+        x = F.relu(self.fc1(input))
+        x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
+        return self.fc4(x)
 
 # custom classes and functions
 
@@ -86,18 +74,15 @@ def main():
     prettyPrint(args.__dict__, 'cmd args')
 
     # Pytorch Dataset
-    norm_mean = [0.1349952518939972]
-    norm_std = [0.30401742458343506]
-    data_folder_path = 'data/MNIST'
-    custom_dataset = ImageClassDatasetFromFolder(
-        data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std, size=28)
-    print('Classes:', custom_dataset.getClasses())
-    print('Decode Classes:', custom_dataset.getInvClasses())
+    data_folder_path = 'data/sudoku/sudoku.csv'
+    custom_dataset = datasetFromCSV(
+        data_folder_path, norm_data=False)
+
     print('Dataset split radio (train, validation, test):',
-          getSplitByPercentage(0.8, len(custom_dataset)))
+          getSplitByPercentage(0.9, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
+        custom_dataset, getSplitByPercentage(0.9, len(custom_dataset)))
 
     num_workers = 4
 
@@ -133,19 +118,22 @@ def main():
     settings['device'] = 'cpu' if (not use_cuda) else (
         'cuda:'+str(cuda.current_device()))
     settings['device'] = torch.device(settings['device'])
-    settings['in_channels'] = 1
-    settings['out_channels'] = 10
+    settings['in_channels'] = 81
+    settings['out_channels'] = 81
 
     prettyPrint(settings, 'settings')
 
     clog('Model Ready')
 
-    model = customModel(
+    model = sudokuModel(
         in_channels=settings['in_channels'], out_channels=settings['out_channels'])
     print(model.eval())
 
-    trainer = swt.nnTrainer(model=model, model_name=__file__, use_cuda=settings['use cuda'])
-    trainer.compile(optim.SGD)
+    trainer = swt.nnTrainer(
+        model=model, model_name=__file__, use_cuda=settings['use cuda'])
+    
+    trainer.compile(optim.SGD, criterion=nn.MSELoss(),
+                    valid_criterion=nn.MSELoss()) #reduction='mean'
 
     pytorch_total_params = sum(p.numel()
                                for p in model.parameters() if p.requires_grad)
@@ -157,8 +145,9 @@ def main():
         start_time = time.time()
         history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,
                               show_progress=args.show_progress, save_plot=args.save_plot)
-        clog("Training time: {} seconds | Device: {}".format(time.time() - start_time, settings['device']))
-        clog('History',history)
+        clog("Training time: {} seconds | Device: {}".format(
+            time.time() - start_time, settings['device']))
+        clog('History', history)
 
     # save model
     if args.train and args.save_model:
@@ -170,8 +159,35 @@ def main():
         output = trainer.predict(test_loader, show_progress=True)
 
 
+def test():
+
+    print('Before Norm data ================================================')
+    data_folder_path = 'data/sudoku/sudoku.csv'
+    custom_dataset = datasetFromCSV(
+        data_folder_path, norm_data=False)
+    print(len(custom_dataset))
+    print(getSplitByPercentage(0.8, len(custom_dataset)))
+
+    train_dataset, val_dataset, test_dataset = random_split(
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
+
+    train_loader = DataLoader(dataset=train_dataset,
+                              batch_size=64,
+                              shuffle=False)
+    valid_loader = DataLoader(dataset=val_dataset,
+                              batch_size=32,
+                              shuffle=True)
+    test_loader = DataLoader(dataset=test_dataset,
+                             batch_size=1,
+                             shuffle=True)
+
+
 # run
 if __name__ == '__main__':
-    print('\n\n')
+    print('\n')
     clog(__file__)
+
+    # readCSVfile('data/sudoku/sudoku.csv')
+
     main()
+    # test()

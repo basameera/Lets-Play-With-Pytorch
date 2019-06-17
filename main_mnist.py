@@ -12,8 +12,8 @@ import time
 def cmdArgs():
     parser = argparse.ArgumentParser(
         description='PyTorch NN\n- by Bassandaruwan')
-    batch_size = 6
-    valid_batch_size = 2
+    batch_size = 64
+    valid_batch_size = 32
     epochs = 0
     parser.add_argument('--batch-size', type=int, default=batch_size, metavar='N',
                         help='input batch size for training (default: {})'.format(batch_size))

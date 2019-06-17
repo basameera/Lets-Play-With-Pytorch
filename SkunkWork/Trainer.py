@@ -103,47 +103,6 @@ class nnTrainer():
         # TODO make this work - similar to `validate` method
         pass
 
-    def predict(self, test_loader, show_progress=True): 
-        # Preparations for validation step
-        self.valid_loss = 0  # Resetting validation loss
-        correct = 0
-        # Switching off autograd
-        with torch.no_grad():
-
-            # Looping through data
-            for input, target in test_loader:
-
-                # Use CUDA?
-                if self.use_cuda:
-                    input = input.cuda()
-                    target = target.cuda()
-
-                # Forward pass
-                output = self.model(input)
-
-                # Calculating loss
-                # loss = F.cross_entropy(output, target, reduction='sum')
-                loss = self.valid_criterion(output, target)
-                self.valid_loss += loss.item()  # Adding to epoch loss
-
-                # accuracy
-                # get the index of the max log-probability
-                pred = output.argmax(dim=1, keepdim=True)
-                correct += pred.eq(target.view_as(pred)).sum().item()
-
-            self.valid_loss /= len(test_loader.dataset)
-
-            # Adding loss to history
-            self.valid_loss_hist.append(self.valid_loss)
-
-        if show_progress:
-            print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-                self.valid_loss,
-                correct,
-                len(test_loader.dataset),
-                100. * correct / len(test_loader.dataset)
-            ))
-
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
         # Preparations for fit step
@@ -151,6 +110,7 @@ class nnTrainer():
         self.model.train()        # Switching to autograd
 
         for batch_idx, (data, target) in enumerate(training_loader):
+            # print(data.shape, ' | ', target.shape)
             if self.use_cuda:
                 data, target = data.cuda(), target.cuda()
             # Clearing gradients
@@ -205,12 +165,21 @@ class nnTrainer():
                 loss = self.valid_criterion(output, target)
                 self.valid_loss += loss.item()  # Adding to epoch loss
 
+                # print(output.shape, target.shape)
+
+                # MSE loss acc
+                pred = torch.round(output)
+                correct += (pred.eq(torch.round(target)
+                                    ).sum().item())/target.shape[0]
+
                 # accuracy
                 # get the index of the max log-probability
-                pred = output.argmax(dim=1, keepdim=True)
-                correct += pred.eq(target.view_as(pred)).sum().item()
+                # following is for crossEntropy outputs
+                # pred = output.argmax(dim=1, keepdim=True)
+                # correct += pred.eq(target.view_as(pred)).sum().item()
 
-            self.valid_loss /= len(validation_loader.dataset)
+            # for crossEntropy
+            # self.valid_loss /= len(validation_loader.dataset)
 
             # Adding loss to history
             self.valid_loss_hist.append(self.valid_loss)
@@ -230,7 +199,8 @@ class nnTrainer():
 
         # Looping through epochs
         for epoch in range(epochs):
-            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
+            self.fit_step(training_loader, epoch, epochs,
+                          show_progress)  # Optimizing
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)
@@ -255,6 +225,52 @@ class nnTrainer():
         history['train_loss'] = self.train_loss_hist
         history['valid_loss'] = self.valid_loss_hist
         return history
+
+    def predict(self, test_loader, show_progress=True):
+        # Preparations for validation step
+        self.valid_loss = 0  # Resetting validation loss
+        correct = 0
+        # Switching off autograd
+        with torch.no_grad():
+
+            # Looping through data
+            for input, target in test_loader:
+
+                # Use CUDA?
+                if self.use_cuda:
+                    input = input.cuda()
+                    target = target.cuda()
+
+                # Forward pass
+                output = self.model(input)
+
+                # Calculating loss
+                # loss = F.cross_entropy(output, target, reduction='sum')
+                loss = self.valid_criterion(output, target)
+                self.valid_loss += loss.item()  # Adding to epoch loss
+
+                # accuracy
+                # get the index of the max log-probability
+                # pred = output.argmax(dim=1, keepdim=True)
+                # correct += pred.eq(target.view_as(pred)).sum().item()
+
+                # MSE loss acc
+                pred = torch.round(output)
+                correct += (pred.eq(torch.round(target)).sum().item())/target.shape[0]
+
+            # for crossEntropy
+            # self.valid_loss /= len(test_loader.dataset)
+
+            # Adding loss to history
+            self.valid_loss_hist.append(self.valid_loss)
+
+        if show_progress:
+            print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+                self.valid_loss,
+                correct,
+                len(test_loader.dataset),
+                100. * correct / len(test_loader.dataset)
+            ))
 
     def save_loss(self):
         path = self.results_path + '/' + self.model_name + '_loss_data.json'
