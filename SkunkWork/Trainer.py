@@ -206,6 +206,9 @@ class nnTrainer():
             # Adding loss to history
             self.valid_loss_hist.append(self.valid_loss)
 
+        if correct>0:
+            clog('****************** CORRECT found ', correct)
+
         if show_progress:
             clog('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
                 name,

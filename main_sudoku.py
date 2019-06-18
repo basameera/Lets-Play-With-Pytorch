@@ -84,6 +84,7 @@ def cmdArgs():
     batch_size = 64
     valid_batch_size = 32
     epochs = 1
+    # train param
     parser.add_argument('--batch-size', type=int, default=batch_size, metavar='N',
                         help='input batch size for training (default: {})'.format(batch_size))
     parser.add_argument('--valid-batch-size', type=int, default=valid_batch_size, metavar='N',
@@ -92,19 +93,27 @@ def cmdArgs():
                         help='number of epochs to train (default: {})'.format(epochs))
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
-    parser.add_argument('--save-model', action='store_true', default=True,
-                        help='For Saving the trained Model')
-    parser.add_argument('--save-best', action='store_true', default=False,
-                        help='For Saving the current Best Model')
     parser.add_argument('--train', action='store_true', default=False,
                         help='Start Training the model')
     parser.add_argument('--eval', action='store_true', default=False,
                         help='Start Evaluating the model')
-    parser.add_argument('--load', action='store_true', default=False,
-                        help='Load the model')
-    parser.add_argument('--show_progress', action='store_true', default=False,
+    parser.add_argument('--show-progress', action='store_true', default=False,
                         help='Show training progress')
-    parser.add_argument('--save_plot', action='store_true', default=True,
+
+    # load param
+    parser.add_argument('--load', action='store_true', default=False,
+                        help='Load the model: True/False')
+    parser.add_argument('--ltype', type=str, default='s', metavar='',
+                        help='Type of the loading model, \'s\': only states, \'f\': full model (default: \'s\') (**Required for loading)')
+    parser.add_argument('--lpath', type=str, default='', metavar='',
+                        help='Path to the loading model. (e.g. \'path\\to\model\model_name.pth\') (**Required for loading)')
+
+    # save param
+    parser.add_argument('--save-model', type=str, default='s', metavar='',
+                        help='Methods for saving model, \'s\': only states, \'f\': full model (default: \'s\')')
+    parser.add_argument('--save-best', action='store_true', default=False,
+                        help='For Saving the current Best Model')
+    parser.add_argument('--save-plot', action='store_true', default=True,
                         help='Save the loss plot as .png')
     return parser.parse_args()
 
@@ -114,9 +123,11 @@ def main():
     prettyPrint(args.__dict__, 'cmd args')
 
     # Pytorch Dataset
-    data_folder_path = 'data/sudoku/sudoku_small.csv'
+    # data_folder_path = 'data/sudoku/sudoku_small.csv'
+    data_folder_path = 'data/sudoku/sudoku.csv'
 
     CNN = True
+    save_model = True
 
     if CNN:
         # Conv
@@ -188,6 +199,22 @@ def main():
         model = sudokuModel(
             in_channels=settings['in_channels'], out_channels=settings['out_channels'])
 
+
+    # load model
+    '''
+    load: true/false
+    type: states/full
+    path: path to the previously saved model
+    '''
+    if args.load:
+        if args.ltype=='s':
+            clog('Loading model with states from: {}'.format(args.lpath))
+            model.load_state_dict(torch.load(args.lpath))
+        if args.ltype=='f':
+            clog('Loading full model from: {}'.format(args.lpath))
+            model = torch.load(args.lpath)
+        
+
     print(model.eval())
 
     trainer = swt.nnTrainer(
@@ -213,8 +240,11 @@ def main():
         clog('History', history)
 
     # save model
-    if args.train and args.save_model:
-        trainer.saveModel(path='model_'+str(args.epochs), full=False)
+    if args.train and save_model:
+        full = False
+        if args.save_model=='f':
+            full = True
+        trainer.saveModel(path='model_'+str(args.epochs), full=full)
 
     if args.eval:
         # test model
