@@ -14,6 +14,7 @@ import torch.optim as optim
 import argparse
 import time
 import numpy as np
+import datetime
 
 # TODO: make the model - conv2D
 
@@ -48,23 +49,30 @@ class sudokuCNN(nn.Module):
         # Initializing all layers
         self.conv1 = nn.Conv2d(in_channels, 20, 3)
         self.conv2 = nn.Conv2d(20, 50, 3)
-        self.deconv1 = nn.ConvTranspose2d(50, 20, 3)
-        self.deconv2 = nn.ConvTranspose2d(20, out_channels, 3)
+        self.conv3 = nn.Conv2d(50, 100, 3)
+
+        self.deconv1 = nn.ConvTranspose2d(100, 50, 3)
+        self.deconv2 = nn.ConvTranspose2d(50, 20, 3)
+        self.deconv3 = nn.ConvTranspose2d(20, out_channels, 3)
 
     def forward(self, input):
-        # print('input', input.shape)
-
         x = F.relu(self.conv1(input))
-        # print('conv1', x.shape)
+        # print('conv1:', x.shape)
 
         x = F.relu(self.conv2(x))
-        # print('conv2', x.shape)
+        # print('conv2:', x.shape)
+
+        x = F.relu(self.conv3(x))
+        # print('conv3:', x.shape)
 
         x = F.relu(self.deconv1(x))
-        # print('deconv1', x.shape)
+        # print('conv3:', x.shape)
 
-        x = self.deconv2(x)
-        # print('deconv2', x.shape)
+        x = F.relu(self.deconv2(x))
+        # print('conv3:', x.shape)
+
+        x = self.deconv3(x)
+        # print('conv3:', x.shape)
         # raise NotImplementedError
         return x
 # custom classes and functions
@@ -198,8 +206,10 @@ def main():
         start_time = time.time()
         history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,
                               show_progress=args.show_progress, save_plot=args.save_plot)
-        clog("Training time: {} seconds | Device: {}".format(
-            time.time() - start_time, settings['device']))
+        clog("Training time: {}  |  Device: {}".format(
+            str(datetime.timedelta(seconds=(time.time() - start_time))).split('.')[0], 
+            settings['device'])
+            )
         clog('History', history)
 
     # save model
