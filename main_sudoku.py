@@ -74,15 +74,15 @@ def main():
     prettyPrint(args.__dict__, 'cmd args')
 
     # Pytorch Dataset
-    data_folder_path = 'data/sudoku/sudoku.csv'
+    data_folder_path = 'data/sudoku/sudoku_small.csv'
     custom_dataset = datasetFromCSV(
         data_folder_path, norm_data=False)
 
     print('Dataset split radio (train, validation, test):',
-          getSplitByPercentage(0.9, len(custom_dataset)))
+          getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, getSplitByPercentage(0.9, len(custom_dataset)))
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
     num_workers = 4
 
@@ -169,8 +169,6 @@ if __name__ == '__main__':
     print('\n')
     clog(__file__)
 
-    # readCSVfile('data/sudoku/sudoku.csv')
+    # readCSVfile('data/sudoku/sudoku_small.csv')
 
     main()
-    # test()
-    # qwe()

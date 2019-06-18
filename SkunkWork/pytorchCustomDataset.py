@@ -149,24 +149,34 @@ class customClassTemplate(Dataset):
 
 def readCSVfile(path):
     print(path)
-    # data = pd.read_csv(path).values
-    index = 10
-    # x, t = data[index, 0], data[index, 1]
-    x = '004083002051004300000096710120800006040000500830607900060309040007000205090050803'  
-    t = '974183652651274389283596714129835476746912538835647921568329147317468295492751863'
-    print('X', x, ' T', t)
+    data = pd.read_csv(path)
+    print(data.values.shape)
+    print(data.head())
+    data = data[['quizzes', 'solutions']]
+    print(data.values.shape)
+    # len = data.values.shape[0]/100
+    # df = data.loc[:len]
+    # df.to_csv('sudoku_small.csv')
 
-    xd, td = [], []
-    for n in range(len(x)):
-        xd.append(int(x[n]))
-        td.append(int(t[n]))
-    xd, td = torch.tensor(xd), torch.tensor(td)
-    print(len(xd))
-    print(td)
+
+    # index = 10
+    # # x, t = data[index, 0], data[index, 1]
+    # x = '004083002051004300000096710120800006040000500830607900060309040007000205090050803'  
+    # t = '974183652651274389283596714129835476746912538835647921568329147317468295492751863'
+    # print('X', x, ' T', t)
+
+    # xd, td = [], []
+    # for n in range(len(x)):
+    #     xd.append(int(x[n]))
+    #     td.append(int(t[n]))
+    # xd, td = torch.tensor(xd), torch.tensor(td)
+    # print(len(xd))
+    # print(td)
 
 class datasetFromCSV(Dataset):
     def __init__(self, path, norm_data=False, norm_mean=None, norm_std=None):
-        self.data = pd.read_csv(path).values
+        self.data = pd.read_csv(path)
+        self.data = self.data[['quizzes', 'solutions']].values
         self.norm_data = norm_data
         
         if self.norm_data:

@@ -14,7 +14,7 @@ from torch import cuda
 # Importing other libraries
 import numpy as np
 import matplotlib.pyplot as plt
-# import time
+import time
 # custom classes and functions
 
 all_metrics = [
@@ -141,11 +141,12 @@ class nnTrainer():
         # Adding loss to history
         self.train_loss_hist.append(self.train_loss / len(training_loader))
 
-    def validation_step(self, validation_loader, show_progress=False):
+    def validation_step(self, validation_loader, show_progress=False, name='Validation'):
         self.model.eval()
         # Preparations for validation step
         self.valid_loss = 0  # Resetting validation loss
         correct = 0
+        clog('{} Started'.format(name))
         # Switching off autograd
         with torch.no_grad():
 
@@ -165,26 +166,15 @@ class nnTrainer():
                 loss = self.valid_criterion(output, target)
                 self.valid_loss += loss.item()  # Adding to epoch loss
 
-                # print(output.shape, target.shape)
+                # accuracy - cross entropy
+                # get the index of the max log-probability
+                # pred = output.argmax(dim=1, keepdim=True)
+                # correct += pred.eq(target.view_as(pred)).sum().item()
 
                 # MSE loss acc
                 pred = torch.round(output)
                 target = torch.round(target)
-
-                for i in range(pred.shape[0]):
-                    eq = pred[i].eq(target[i])
-                    correct += eq.sum().item()/pred.shape[1]
-
-                # print(pred.shape)
-                # raise NotImplementedError
-
-                # correct += (pred.eq(torch.round(target)).sum().item())/target.shape[0]
-
-                # accuracy
-                # get the index of the max log-probability
-                # following is for crossEntropy outputs
-                # pred = output.argmax(dim=1, keepdim=True)
-                # correct += pred.eq(target.view_as(pred)).sum().item()
+                correct += self.checkSudokuIsCorrect(pred, target)
 
             # for crossEntropy
             self.valid_loss /= len(validation_loader.dataset)
@@ -193,7 +183,8 @@ class nnTrainer():
             self.valid_loss_hist.append(self.valid_loss)
 
         if show_progress:
-            print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+            clog('{} set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+                name,
                 self.valid_loss,
                 int(correct),
                 len(validation_loader.dataset),
@@ -215,7 +206,7 @@ class nnTrainer():
             # Possibly saving model
             if save_best:
                 if self.valid_loss_hist[-1] < best_validation:
-                    self.save('best_validation_'+str(epoch))
+                    self.saveModel('best_validation_'+str(epoch))
                     best_validation = self.valid_loss_hist[-1]
 
         # Switching to eval
@@ -234,56 +225,14 @@ class nnTrainer():
         return history
 
     def predict(self, test_loader, show_progress=True):
-        self.model.eval() # TODO: is this necessary during predictions.
-        # Preparations for validation step
-        self.test_loss_hist = []
-        self.test_loss = 0  # Resetting validation loss
-        correct = 0
-        # Switching off autograd
-        with torch.no_grad():
+        self.validation_step(test_loader, show_progress, name='Prediction')
 
-            # Looping through data
-            for input, target in test_loader:
-
-                # Use CUDA?
-                if self.use_cuda:
-                    input = input.cuda()
-                    target = target.cuda()
-
-                # Forward pass
-                output = self.model(input)
-
-                # Calculating loss
-                # loss = F.cross_entropy(output, target, reduction='sum')
-                loss = self.valid_criterion(output, target)
-                self.test_loss += loss.item()  # Adding to epoch loss
-
-                # accuracy
-                # get the index of the max log-probability
-                # pred = output.argmax(dim=1, keepdim=True)
-                # correct += pred.eq(target.view_as(pred)).sum().item()
-
-                # MSE loss acc
-                pred = torch.round(output)
-                target = torch.round(target)
-
-                for i in range(pred.shape[0]):
-                    eq = pred[i].eq(target[i])
-                    correct += eq.sum().item()/pred.shape[1]
-
-            # for crossEntropy
-            self.test_loss /= len(test_loader.dataset)
-
-            # Adding loss to history
-            self.test_loss_hist.append(self.test_loss)
-
-        if show_progress:
-            print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-                self.test_loss,
-                int(correct),
-                len(test_loader.dataset),
-                100. * correct / len(test_loader.dataset)
-            ))
+    def checkSudokuIsCorrect(self, pred, target):
+        pred = pred.int()
+        target = target.int()
+        eq = torch.eq(pred, target)
+        eq = torch.sum(eq, dim=1)/target.size(1)
+        return eq.sum().item()
 
     def save_loss(self):
         path = self.results_path + '/' + self.model_name + '_loss_data.json'
@@ -336,7 +285,7 @@ class nnTrainer():
 
         # Adding plots
         plt.plot(self.train_loss_hist, color='blue', label='Training loss')
-        plt.plot(self.valid_loss_hist, color='red', label='Validation loss')
+        plt.plot(self.valid_loss_hist, color='red',  label='Validation loss')
 
         # Axis labels
         plt.xlabel('Epochs')
