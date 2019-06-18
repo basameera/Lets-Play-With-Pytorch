@@ -85,7 +85,7 @@ class nnTrainer():
         if self.use_cuda:
             self.model.cuda()
 
-    def evaluate(self, test_loader, batch_size=None, verbose=1, sample_weight=None, steps=None, callbacks=None):
+    def evaluate(self, validation_loader, batch_size=None, verbose=1, sample_weight=None, steps=None, callbacks=None):
         """Returns the loss value & metrics values for the model in test mode.
 
         Computation is done in batches.
@@ -101,7 +101,31 @@ class nnTrainer():
             callbacks {[type]} -- [description] (default: {None})
         """
         # TODO make this work - similar to `validate` method
-        pass
+        self.model.eval()
+        # Preparations for validation step
+
+        # Switching off autograd
+        with torch.no_grad():
+            output = []
+            # Looping through data
+            for input, target in validation_loader:
+
+                # Use CUDA?
+                if self.use_cuda:
+                    input = input.cuda()
+                    target = target.cuda()
+
+                # Forward pass
+                pred = self.model(input)
+
+                # MSE loss acc
+                pred = torch.round(pred)
+                target = torch.round(target)
+
+                output.append(( pred.view(-1, 9, 9).cpu().numpy(), target.view(-1, 9, 9).cpu().numpy() ))
+
+            return output
+
 
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
@@ -231,7 +255,15 @@ class nnTrainer():
         pred = pred.int()
         target = target.int()
         eq = torch.eq(pred, target)
-        eq = torch.sum(eq, dim=1)/target.size(1)
+
+        if len(eq.size()) > 2:
+            # Only use following step for CNNs
+            eq = eq.view(-1, 9*9)
+        denom = eq.size(1)
+        eq = torch.sum(eq, dim=1)/denom
+        # print( eq.shape, denom )
+
+        # raise NotImplementedError
         return eq.sum().item()
 
     def save_loss(self):

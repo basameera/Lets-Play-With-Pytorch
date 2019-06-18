@@ -148,45 +148,22 @@ class customClassTemplate(Dataset):
 #         return count # of how many data(images?) you have
 
 def readCSVfile(path):
-    print(path)
     data = pd.read_csv(path)
-    print(data.values.shape)
-    print(data.head())
-    data = data[['quizzes', 'solutions']]
-    print(data.values.shape)
-    # len = data.values.shape[0]/100
-    # df = data.loc[:len]
-    # df.to_csv('sudoku_small.csv')
+    data = data[['quizzes', 'solutions']].values
+    x, t = data[0, 0], data[0, 1]
+    xd, td = [], []
+    for n in range(len(x)):
+        xd.append(int(x[n]))
+        td.append(int(t[n]))
 
+    xd, td = np.array(xd).reshape((1, 9, 9)), np.array(td).reshape((1, 9, 9))
+    print(xd.shape)
 
-    # index = 10
-    # # x, t = data[index, 0], data[index, 1]
-    # x = '004083002051004300000096710120800006040000500830607900060309040007000205090050803'  
-    # t = '974183652651274389283596714129835476746912538835647921568329147317468295492751863'
-    # print('X', x, ' T', t)
-
-    # xd, td = [], []
-    # for n in range(len(x)):
-    #     xd.append(int(x[n]))
-    #     td.append(int(t[n]))
-    # xd, td = torch.tensor(xd), torch.tensor(td)
-    # print(len(xd))
-    # print(td)
 
 class datasetFromCSV(Dataset):
-    def __init__(self, path, norm_data=False, norm_mean=None, norm_std=None):
+    def __init__(self, path):
         self.data = pd.read_csv(path)
         self.data = self.data[['quizzes', 'solutions']].values
-        self.norm_data = norm_data
-        
-        if self.norm_data:
-            if norm_mean is not None and norm_std is not None:
-                self.norm_transforms = transforms.Compose([
-                    transforms.Normalize(mean=norm_mean, std=norm_std),
-                ])
-            else:
-                raise ValueError(
-                    "Arguments 'norm_mean' and 'norm_std' vectors are not available.")
 
     def __len__(self):
         return self.data.shape[0]
@@ -198,9 +175,26 @@ class datasetFromCSV(Dataset):
             xd.append(int(x[n]))
             td.append(int(t[n]))
         xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.float)
-        if self.norm_data:
-            xd, td = self.norm_transforms(xd), self.norm_transforms(td)
         return xd, td  # x, target
+
+class datasetFromCSV_2D(Dataset):
+    def __init__(self, path):
+        self.data = pd.read_csv(path)
+        self.data = self.data[['quizzes', 'solutions']].values
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, index):
+        x, t = self.data[index, 0], self.data[index, 1]
+        xd, td = [], []
+        for n in range(len(x)):
+            xd.append(int(x[n]))
+            td.append(int(t[n]))
+        xd, td = np.array(xd).reshape((1, 9, 9)), np.array(td).reshape((1, 9, 9))
+        xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.float)
+        return xd, td  # x, target
+
 # main funciton
 
 

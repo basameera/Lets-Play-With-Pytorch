@@ -1,7 +1,7 @@
 """Lets solve Sudoku - https://www.kaggle.com/bryanpark/sudoku """
 # imports
 from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
-from SkunkWork.pytorchCustomDataset import readCSVfile, datasetFromCSV, ImageClassDatasetFromFolder
+from SkunkWork.pytorchCustomDataset import readCSVfile, datasetFromCSV, ImageClassDatasetFromFolder, datasetFromCSV_2D
 import SkunkWork.Trainer as swt
 #
 from torch.utils.data import DataLoader, random_split
@@ -16,6 +16,8 @@ import time
 import numpy as np
 
 # TODO: make the model - conv2D
+
+
 class sudokuModel(nn.Module):
 
     def __init__(self, in_channels=1, out_channels=10):
@@ -25,16 +27,46 @@ class sudokuModel(nn.Module):
 
         # Initializing all layers
         self.fc1 = nn.Linear(in_channels, 100)
-        self.fc2 = nn.Linear(100, 100)
-        # self.fc3 = nn.Linear(100, 100)
+        self.fc2 = nn.Linear(100, 200)
+        self.fc3 = nn.Linear(200, 100)
         self.fc4 = nn.Linear(100, out_channels)
 
     def forward(self, input):
         x = F.relu(self.fc1(input))
         x = F.relu(self.fc2(x))
-        # x = F.relu(self.fc3(x))
+        x = F.relu(self.fc3(x))
         return self.fc4(x)
 
+
+class sudokuCNN(nn.Module):
+
+    def __init__(self, in_channels=1, out_channels=1):
+
+        # Basics
+        super(sudokuCNN, self).__init__()
+
+        # Initializing all layers
+        self.conv1 = nn.Conv2d(in_channels, 20, 3)
+        self.conv2 = nn.Conv2d(20, 50, 3)
+        self.deconv1 = nn.ConvTranspose2d(50, 20, 3)
+        self.deconv2 = nn.ConvTranspose2d(20, out_channels, 3)
+
+    def forward(self, input):
+        # print('input', input.shape)
+
+        x = F.relu(self.conv1(input))
+        # print('conv1', x.shape)
+
+        x = F.relu(self.conv2(x))
+        # print('conv2', x.shape)
+
+        x = F.relu(self.deconv1(x))
+        # print('deconv1', x.shape)
+
+        x = self.deconv2(x)
+        # print('deconv2', x.shape)
+        # raise NotImplementedError
+        return x
 # custom classes and functions
 
 
@@ -75,14 +107,23 @@ def main():
 
     # Pytorch Dataset
     data_folder_path = 'data/sudoku/sudoku_small.csv'
-    custom_dataset = datasetFromCSV(
-        data_folder_path, norm_data=False)
+
+    CNN = True
+
+    if CNN:
+        # Conv
+        custom_dataset = datasetFromCSV_2D(data_folder_path)
+    else:
+        # Linear
+        custom_dataset = datasetFromCSV(data_folder_path)
+
+    percentage = 0.9
 
     print('Dataset split radio (train, validation, test):',
-          getSplitByPercentage(0.8, len(custom_dataset)))
+          getSplitByPercentage(percentage, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
+        custom_dataset, getSplitByPercentage(percentage, len(custom_dataset)))
 
     num_workers = 4
 
@@ -97,17 +138,12 @@ def main():
                               pin_memory=True,
                               num_workers=num_workers)
     test_loader = DataLoader(dataset=test_dataset,
-                             batch_size=1,
+                             batch_size=32,
                              shuffle=True,
                              pin_memory=True,
                              num_workers=num_workers)
 
-    # for input, _ in test_loader:
-    #     print(input.shape)
-
     clog('Data Loaders ready')
-
-    # raise NotImplementedError
 
     settings = dict()
     use_cuda = not args.no_cuda and cuda.is_available()
@@ -123,15 +159,27 @@ def main():
     settings['device'] = 'cpu' if (not use_cuda) else (
         'cuda:'+str(cuda.current_device()))
     settings['device'] = torch.device(settings['device'])
+
     settings['in_channels'] = 81
     settings['out_channels'] = 81
+
+    if CNN:
+        settings['in_channels'] = 1
+        settings['out_channels'] = 1
 
     prettyPrint(settings, 'settings')
 
     clog('Model Ready')
 
-    model = sudokuModel(
-        in_channels=settings['in_channels'], out_channels=settings['out_channels'])
+    if CNN:
+        # Conv
+        model = sudokuCNN(
+            in_channels=settings['in_channels'], out_channels=settings['out_channels'])
+    else:
+        # Linear
+        model = sudokuModel(
+            in_channels=settings['in_channels'], out_channels=settings['out_channels'])
+
     print(model.eval())
 
     trainer = swt.nnTrainer(
@@ -161,7 +209,13 @@ def main():
     if args.eval:
         # test model
         clog('Prediction Test model')
-        output = trainer.predict(test_loader, show_progress=True)
+        # output = trainer.predict(test_loader, show_progress=True)
+        output = trainer.evaluate(test_loader)
+
+        (P, T) = output[0]
+
+        print(P[0])
+        print(T[0])
 
 
 # run
