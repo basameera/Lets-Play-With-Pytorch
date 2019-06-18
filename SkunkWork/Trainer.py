@@ -122,10 +122,10 @@ class nnTrainer():
                 pred = torch.round(pred)
                 target = torch.round(target)
 
-                output.append(( pred.view(-1, 9, 9).cpu().numpy(), target.view(-1, 9, 9).cpu().numpy() ))
+                output.append((pred.view(-1, 9, 9).cpu().numpy(),
+                               target.view(-1, 9, 9).cpu().numpy()))
 
             return output
-
 
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
@@ -154,7 +154,7 @@ class nnTrainer():
             if show_progress:
                 if batch_idx % int(len(training_loader)*0.10) == 0:
                     # if batch_idx % 1 == 0:
-                    print('Train Epoch: {}/{} [{:06d}/{:06d} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    print('Train Epoch: {}/{} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                         epoch+1,
                         n_epochs,
                         batch_idx*len(data),
@@ -170,7 +170,7 @@ class nnTrainer():
         # Preparations for validation step
         self.valid_loss = 0  # Resetting validation loss
         correct = 0
-        clog('{} Started'.format(name))
+        # clog('{} Started'.format(name))
         # Switching off autograd
         with torch.no_grad():
 
@@ -222,10 +222,19 @@ class nnTrainer():
 
         # Looping through epochs
         for epoch in range(epochs):
-            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
+            self.fit_step(training_loader, epoch, epochs,
+                          show_progress)  # Optimizing
+
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)
+
+            clog('Epoch: {}/{}\t| Train Loss: {:.6f}\t | Validation Loss: {:.6f}'.format(
+                epoch+1,
+                epochs,
+                self.train_loss_hist[-1],
+                self.valid_loss_hist[-1]
+                ))
 
             # Possibly saving model
             if save_best:

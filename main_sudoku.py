@@ -102,7 +102,7 @@ def cmdArgs():
                         help='Start Evaluating the model')
     parser.add_argument('--load', action='store_true', default=False,
                         help='Load the model')
-    parser.add_argument('--show_progress', action='store_true', default=True,
+    parser.add_argument('--show_progress', action='store_true', default=False,
                         help='Show training progress')
     parser.add_argument('--save_plot', action='store_true', default=True,
                         help='Save the loss plot as .png')

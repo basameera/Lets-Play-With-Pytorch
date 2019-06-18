@@ -4,7 +4,7 @@ from PIL import Image
 import datetime
 
 def clog(*args):
-    msg = '>>> '+str(datetime.datetime.now()) + ' :'
+    msg = '>>> '+str(datetime.datetime.now()).split('.')[0] + ' :'
     for s in args:
         msg = msg + ' ' + str(s)
     print(msg)
