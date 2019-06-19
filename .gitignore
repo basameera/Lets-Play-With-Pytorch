@@ -1,9 +1,12 @@
 .vscode
 *.pyc
+
 data/
 results/
 ignore/
 save/
+history/
+
 *.pth
 *.zip
 *.rar
