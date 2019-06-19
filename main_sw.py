@@ -1,20 +1,61 @@
 """Project Doc String - Python program tempalte"""
 # imports
 from SkunkWork.pytorchCustomDataset import ImageClassDatasetFromFolder
-from pytorch_model import CNN
+import SkunkWork.Trainer as swt
+from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
+#
 from torch.utils.data import DataLoader, random_split
 import torch
 from torch import cuda
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+#
 import argparse
-from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
 import time
+
+
+class customModel(nn.Module):
+
+    def __init__(self, in_channels=1, out_channels=10):
+
+        # Basics
+        super(customModel, self).__init__()
+
+        # Initializing all layers
+        self.conv1 = nn.Conv2d(in_channels, 20, 5, 1)
+        self.conv2 = nn.Conv2d(20, 50, 5, 1)
+        self.fc1 = nn.Linear(800, 500)  # mnist
+        self.fc2 = nn.Linear(500, out_channels)
+
+    def forward(self, input):
+        x = F.relu(self.conv1(input))
+        x = F.max_pool2d(x, 2, 2)
+        x = F.relu(self.conv2(x))
+        x = F.max_pool2d(x, 2, 2)
+        x = x.view(x.shape[0], -1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+    @staticmethod
+    def load(path='results/cnn_model.pth'):
+        if not '.pth' in path:
+            path += '.pth'
+
+        model = customModel()
+        model.load_state_dict(torch.load(path))
+        return model
+
 # custom classes and functions
+
+
 def cmdArgs():
     parser = argparse.ArgumentParser(
         description='PyTorch NN\n- by Bassandaruwan')
     batch_size = 64
     valid_batch_size = 32
-    epochs = 0
+    epochs = 1
     parser.add_argument('--batch-size', type=int, default=batch_size, metavar='N',
                         help='input batch size for training (default: {})'.format(batch_size))
     parser.add_argument('--valid-batch-size', type=int, default=valid_batch_size, metavar='N',
@@ -34,13 +75,12 @@ def cmdArgs():
     parser.add_argument('--load', action='store_true', default=False,
                         help='Load the model')
     parser.add_argument('--show_progress', action='store_true', default=True,
-                        help='Show training progress')  
+                        help='Show training progress')
     parser.add_argument('--save_plot', action='store_true', default=True,
-                        help='Save the loss plot as .png')  
+                        help='Save the loss plot as .png')
     return parser.parse_args()
 
 
-# main funciton
 def main():
     args = cmdArgs()
     prettyPrint(args.__dict__, 'cmd args')
@@ -49,24 +89,34 @@ def main():
     norm_mean = [0.1349952518939972]
     norm_std = [0.30401742458343506]
     data_folder_path = 'data/MNIST'
-    custom_dataset = ImageClassDatasetFromFolder(data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std)
+    custom_dataset = ImageClassDatasetFromFolder(
+        data_folder_path, int_classes=True, norm_data=True, norm_mean=norm_mean, norm_std=norm_std, size=28)
     print('Classes:', custom_dataset.getClasses())
     print('Decode Classes:', custom_dataset.getInvClasses())
-    print('Dataset split radio (train, validation, test):', getSplitByPercentage(0.8, len(custom_dataset)))
+    print('Dataset split radio (train, validation, test):',
+          getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
         custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
+    num_workers = 4
+
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=args.batch_size,
-                              shuffle=False)
+                              shuffle=False,
+                              pin_memory=True,
+                              num_workers=num_workers)
     valid_loader = DataLoader(dataset=val_dataset,
                               batch_size=args.valid_batch_size,
-                              shuffle=True)
+                              shuffle=True,
+                              pin_memory=True,
+                              num_workers=num_workers)
     test_loader = DataLoader(dataset=test_dataset,
                              batch_size=1,
-                             shuffle=True)
-    
+                             shuffle=True,
+                             pin_memory=True,
+                             num_workers=num_workers)
+
     clog('Data Loaders ready')
 
     settings = dict()
@@ -80,7 +130,8 @@ def main():
 
     # settings
     settings['use cuda'] = use_cuda
-    settings['device'] = 'cpu' if (not use_cuda) else ('cuda:'+str(cuda.current_device()))
+    settings['device'] = 'cpu' if (not use_cuda) else (
+        'cuda:'+str(cuda.current_device()))
     settings['device'] = torch.device(settings['device'])
     settings['in_channels'] = 1
     settings['out_channels'] = 10
@@ -88,43 +139,39 @@ def main():
     prettyPrint(settings, 'settings')
 
     clog('Model Ready')
-    # Instantiate mode
-    model = CNN(in_channels=settings['in_channels'], out_channels=settings['out_channels'], use_cuda=use_cuda, model_name=__file__)
-    print()
+
+    model = customModel(
+        in_channels=settings['in_channels'], out_channels=settings['out_channels'])
     print(model.eval())
 
-    pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    trainer = swt.nnTrainer(model=model, model_name=__file__, use_cuda=settings['use cuda'])
+    trainer.compile(optim.SGD)
+
+    pytorch_total_params = sum(p.numel()
+                               for p in model.parameters() if p.requires_grad)
     clog('Model Total Trainable parameters: {}'.format(pytorch_total_params))
 
     # Train model
     if args.train:
         clog('Training Started...\n')
-        model.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best, show_progress=args.show_progress, save_plot=args.save_plot)
+        start_time = time.time()
+        history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,
+                              show_progress=args.show_progress, save_plot=args.save_plot)
+        clog("Training time: {} seconds | Device: {}".format(time.time() - start_time, settings['device']))
+        clog('History',history)
 
     # save model
     if args.train and args.save_model:
-        model.save(path='model_'+str(args.epochs))
-
-    # load model
-    if args.load:
-        clog('Loading model')
-        model = CNN().load()
+        trainer.saveModel(path='model_'+str(args.epochs), full=False)
 
     if args.eval:
         # test model
         clog('Prediction Test model')
-        correct_pred = 0
-        for i, (input, target) in enumerate(test_loader):
-            output = model.predict(input)
-            status = ''
-            if target[0].item() == torch.argmax(output[0]):
-                status = 'Correct'
-                correct_pred += 1
-            # print('Target: {} | Prediction: {} | status: {}'.format( target[0].item(), torch.argmax(output[0]), status ))
+        output = trainer.predict(test_loader, show_progress=True)
 
-        print('\n\nAccuracy: [{}/{}] - ({:.0f}%)\n'.format( correct_pred, len(test_loader), (correct_pred*100/len(test_loader)) ))
 
 # run
 if __name__ == '__main__':
+    print('\n\n')
     clog(__file__)
     main()

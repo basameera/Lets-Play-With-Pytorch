@@ -11,26 +11,32 @@ if [ $# -eq 0 ]; then
 fi
 
 echo ">>" Commit message: "$1"
-echo
-echo ">>" Checking git status
-echo
-git status
+
 echo
 echo ">>" Git pull
 echo
 git pull
+
+echo
+echo ">>" Checking git status
+echo
+git status
+
 echo
 echo ">>" Git add
 echo
 git add .
+
 echo
 echo ">>" Git commit
 echo
 git commit -m "$1"
+
 echo
 echo ">>" Git push
 echo
 git push
+
 echo
 echo ">>" Checking git status
 echo

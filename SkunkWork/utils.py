@@ -4,7 +4,7 @@ from PIL import Image
 import datetime
 
 def clog(*args):
-    msg = '>>> '+str(datetime.datetime.now()) + ' :'
+    msg = '>>> '+str(datetime.datetime.now()).split('.')[0] + ' :'
     for s in args:
         msg = msg + ' ' + str(s)
     print(msg)
@@ -97,18 +97,24 @@ def prettyPrint(input, heading='', prev_indent=0):
         raise TypeError('Input should be a Dictionary object.')
 
 
-def getListOfFilesX(dirName, ext=['.jpg', '.png']):
-    # create a list of file and sub directories
-    # names in the given directory
-    listOfFile = os.listdir(dirName)
+def getListOfFiles(sourcePath, ext=['.jpg', '.png']):
+    """getListOfFiles
+    
+    Arguments:
+        sourcePath {[type]} -- [description]
+    
+    Keyword Arguments:
+        ext {list} -- [description] (default: {['.jpg', '.png']})
+    """
+    listOfFile = os.listdir(sourcePath)
     allFiles = list()
     # Iterate over a4ll the entries
     for entry in listOfFile:
         # Create full path
-        fullPath = os.path.join(dirName, entry)
+        fullPath = os.path.join(sourcePath, entry)
         # If entry is a directory then get the list of files in this directory
         if os.path.isdir(fullPath):
-            allFiles = allFiles + getListOfFilesX(fullPath)
+            allFiles = allFiles + getListOfFiles(fullPath)
         else:
             if os.path.isfile(fullPath):
                 _, f_ext = os.path.splitext(fullPath)
@@ -132,6 +138,13 @@ def getDatasetSizeOnDisk(fileList):
         ext = 'kB'
     return size, ext
 
+def getSplitByPercentage(train_percentage=0.8, len=0):
+    if train_percentage > 0.0 and train_percentage < 1.0:
+        train_p = int(train_percentage*len)
+        valid_p = (len - train_p)//2
+        return [train_p, valid_p, len - train_p - valid_p]
+    else:
+        raise ValueError('Value should be between 0 and 1.')
 
 def imgResize(fileList, size=200, save_folder='save'):
     size = 256, 256
@@ -143,7 +156,7 @@ def imgResize(fileList, size=200, save_folder='save'):
 
 
 def imgResize(source_folder='data', destination_folder='save', size=256, keep_aspect_ratio=True):
-    fileList = getListOfFilesX(source_folder)
+    fileList = getListOfFiles(source_folder)
 
     for id, path in enumerate(fileList):
         print(id, ' | ', path, end=' | ')
@@ -223,8 +236,8 @@ def main():
     # prettyPrint(dict(config))
     # prettyPrint(dict(config), 'config')
 
-    filesCS = getListOfFilesX('data/old/CS')
-    filesMD = getListOfFilesX('data/old/MD')
+    filesCS = getListOfFiles('data/old/CS')
+    filesMD = getListOfFiles('data/old/MD')
 
     print('cs data len', len(filesCS))
     print('md data len', len(filesMD))

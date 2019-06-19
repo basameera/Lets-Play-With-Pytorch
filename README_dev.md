@@ -50,11 +50,12 @@ Run `pip install netron`
 Then `netron [FILE]` or `import netron`; `netron.start('[FILE]')`
 
 ## To Do;
+- [ ] **Trainer** - use of different **criterions - Why `reduction` in validation?**
 - [x] **Nvidia Drivers NOT available** - https://www.nvidia.com/download/driverResults.aspx/135394/en-us
-- [ ] **Trainer class** which has all features of pytorch_model.py yet, an external model can be passed. - https://keras.io/models/sequential/
+- [ ] **Trainer class** - Finish TODOs - https://keras.io/models/sequential/
+- [ ] Custom dataset - [SubsetRandomSampler](https://pytorch.org/docs/master/data.html#torch.utils.data.SubsetRandomSampler)
 - [ ] **Play with RL** 
 - [ ] without split - two folders for training and test data is already supplied
-
 - [ ] 
 
 ## Done;

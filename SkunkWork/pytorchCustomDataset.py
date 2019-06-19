@@ -6,10 +6,6 @@ To Do
 * without split - two folders for training and test data is already supplied
 '''
 
-# imports
-
-# custom classes and functions
-
 
 
 
@@ -20,11 +16,16 @@ from torch.utils.data import DataLoader, random_split
 import os
 from PIL import Image
 import numpy as np
+from .utils import getListOfFiles, getSplitByPercentage
+import pandas as pd
+import numpy as np
+import time
+
 class ImageClassDatasetFromFolder(Dataset):
     """From Tutorial - https://totoys.github.io/posts/2019-4-10-what-is-torch.utils.data.Dataset-really/
     More info - https://github.com/utkuozbulak/pytorch-custom-dataset-examples#using-torchvision-transforms"""
 
-    def __init__(self, path, int_classes=False, norm_data=False, norm_mean=None, norm_std=None):
+    def __init__(self, path, int_classes=False, norm_data=False, norm_mean=None, norm_std=None, size=28):
         self.path = path
         self.int_classes = int_classes
         self.norm_data = norm_data
@@ -41,7 +42,7 @@ class ImageClassDatasetFromFolder(Dataset):
         self.data_list = dict()
         self.fileList = []
         for key, value in self.classes.items():
-            tempList = self.getListOfFiles(path+'/'+key)
+            tempList = getListOfFiles(path+'/'+key)
             _class = key
             if int_classes:
                 _class = value
@@ -52,9 +53,13 @@ class ImageClassDatasetFromFolder(Dataset):
             self.fileList += tempList
 
         # image transformations
-        sz = 256
+
+        if isinstance(size, int):
+            self.size = (size, size)
+        if isinstance(size, tuple):
+            self.size = size
         self.init_transforms = transforms.Compose([
-            transforms.Resize(size=(sz, sz)),
+            transforms.Resize(size=self.size),
             transforms.ToTensor(),
         ])
 
@@ -64,7 +69,8 @@ class ImageClassDatasetFromFolder(Dataset):
                     transforms.Normalize(mean=norm_mean, std=norm_std),
                 ])
             else:
-                raise ValueError("Arguments 'norm_mean' and 'norm_std' vectors are not available.")
+                raise ValueError(
+                    "Arguments 'norm_mean' and 'norm_std' vectors are not available.")
 
         # Tensor to PIL
         self.ToPILImage = transforms.Compose([
@@ -88,52 +94,106 @@ class ImageClassDatasetFromFolder(Dataset):
         # print(isinstance(tensor_img, torch.tensor))
         return self.ToPILImage(tensor_img)
 
-    def getDatasetSizeOnDisk(self):
-        """Get Dataset Size on Local Disk"""
-        size = 0
-        ext = 'Bytes'
-        for file in self.fileList:
-            size += os.stat(file).st_size
-
-        if size > 1e6:
-            size /= 1e6
-            ext = 'MB'
-        if size > 1e3:
-            size /= 1e3
-            ext = 'kB'
-        return size, ext
-
-    def getListOfFiles(self, dirName, file_extentions=['.jpg', '.JPG']):
-        # create a list of file and sub directories
-        # names in the given directory
-        listOfFile = os.listdir(dirName)
-        allFiles = list()
-        # Iterate over a4ll the entries
-        for entry in listOfFile:
-            # Create full path
-            fullPath = os.path.join(dirName, entry)
-            # If entry is a directory then get the list of files in this directory
-            if os.path.isdir(fullPath):
-                allFiles = allFiles + self.getListOfFiles(fullPath)
-            else:
-                if os.path.isfile(fullPath) and (fullPath.endswith('.jpg') or fullPath.endswith('.JPG')):
-                    allFiles.append(fullPath)
-
-        return allFiles
-
     def getClasses(self):
         return self.classes
 
     def getInvClasses(self):
         return self.inverse_classes
 
-    def getSplitByPercentage(self, train_percentage=0.8):
-        if train_percentage > 0.0 and train_percentage < 1.0:
-            train_p = int(train_percentage*self.__len__())
-            valid_p = (self.__len__() - train_p)//2
-            return [train_p, valid_p, self.__len__() - train_p - valid_p]
-        else:
-            raise ValueError('Value should be between 0 and 1.')
+
+# template
+
+
+class customClassTemplate(Dataset):
+    def __init__(self, path):
+        self.path = path
+        cls = sorted(os.listdir(path))
+        self.classes = dict()
+        for i, c in enumerate(cls):
+            self.classes.update({c: i})
+        self.data_list = dict()
+        for c in cls:
+            file_names = sorted(os.listdir(os.path.join(path, c)))
+            for file_name in file_names:
+                self.data_list.update({file_name: c})
+
+    def __len__(self):
+        return len(self.data_list)
+
+    def __getitem__(self, index):
+        file_name = list(self.data_list.keys())[index]
+        label = list(self.data_list.values())[index]
+        item = Image.open(file_name)
+        label = self.classes[label]
+        return item, label
+
+
+# class MyCustomDataset(Dataset):
+#     def __init__(self, transforms=None):
+#         # stuff
+
+#         self.transforms = transforms
+
+#     def __getitem__(self, index):
+#         # stuff
+
+
+#         if self.transforms is not None:
+#             data = self.transforms(data)
+#         # If the transform variable is not empty
+#         # then it applies the operations in the transforms with the order that it is created.
+#         return (img, label)
+
+#     def __len__(self):
+#         return count # of how many data(images?) you have
+
+def readCSVfile(path):
+    data = pd.read_csv(path)
+    data = data[['quizzes', 'solutions']].values
+    x, t = data[0, 0], data[0, 1]
+    xd, td = [], []
+    for n in range(len(x)):
+        xd.append(int(x[n]))
+        td.append(int(t[n]))
+
+    xd, td = np.array(xd).reshape((1, 9, 9)), np.array(td).reshape((1, 9, 9))
+    print(xd.shape)
+
+
+class datasetFromCSV(Dataset):
+    def __init__(self, path):
+        self.data = pd.read_csv(path)
+        self.data = self.data[['quizzes', 'solutions']].values
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, index):
+        x, t = self.data[index, 0], self.data[index, 1]
+        xd, td = [], []
+        for n in range(len(x)):
+            xd.append(int(x[n]))
+            td.append(int(t[n]))
+        xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.float)
+        return xd, td  # x, target
+
+class datasetFromCSV_2D(Dataset):
+    def __init__(self, path):
+        self.data = pd.read_csv(path)
+        self.data = self.data[['quizzes', 'solutions']].values
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, index):
+        x, t = self.data[index, 0], self.data[index, 1]
+        xd, td = [], []
+        for n in range(len(x)):
+            xd.append(int(x[n]))
+            td.append(int(t[n]))
+        xd, td = np.array(xd).reshape((1, 9, 9)), np.array(td).reshape((1, 9, 9))
+        xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.float)
+        return xd, td  # x, target
 
 # main funciton
 
@@ -142,14 +202,15 @@ def main():
     # Pytorch Dataset
     print('Before Norm data ================================================')
     data_folder_path = 'data/MNIST'
-    custom_dataset = ImageClassDatasetFromFolder(data_folder_path, int_classes=True, norm_data=False)
+    custom_dataset = ImageClassDatasetFromFolder(
+        data_folder_path, int_classes=True, norm_data=False)
     print(len(custom_dataset))
     print(custom_dataset.getClasses())
     print(custom_dataset.getInvClasses())
-    print(custom_dataset.getSplitByPercentage())
+    print(getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, custom_dataset.getSplitByPercentage(0.8))
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=32,
@@ -161,7 +222,9 @@ def main():
 
     for i, image in enumerate(train_loader, 0):
         numpy_image = image[0].numpy()
+        print('img', numpy_image.shape)
         batch_mean = np.mean(numpy_image, axis=(0, 2, 3))
+        print('batch_mean', batch_mean.shape)
         batch_std = np.std(numpy_image, axis=(0, 2, 3))
         train_mean.append(batch_mean)
         train_std.append(batch_std)
@@ -175,10 +238,11 @@ def main():
     print('After norm data ================================================')
     # train_mean = [0.6097, 0.5079, 0.4260]
     # train_std = [0.2694, 0.2605, 0.2625]
-    custom_dataset = ImageClassDatasetFromFolder(data_folder_path, int_classes=True, norm_data=True, norm_mean=train_mean, norm_std=train_std)
+    custom_dataset = ImageClassDatasetFromFolder(
+        data_folder_path, int_classes=True, norm_data=True, norm_mean=train_mean, norm_std=train_std)
 
     train_dataset, val_dataset, test_dataset = random_split(
-        custom_dataset, custom_dataset.getSplitByPercentage(0.8))
+        custom_dataset, getSplitByPercentage(0.8, len(custom_dataset)))
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=32,
@@ -191,7 +255,6 @@ def main():
                              shuffle=True)
 
     print('Data Ready')
-    
 
 
 # run

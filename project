@@ -1,7 +1,0 @@
-#!/bin/bash
-touch model.py
-touch train.py
-touch predict.py
-touch eval.py
-mkdir data
-mkdir results

@@ -2,7 +2,7 @@
 
 # imports
 from __future__ import print_function
-from bass_util import prettyPrint, clog
+from SkunkWork.utils import prettyPrint, clog
 import json
 import os
 

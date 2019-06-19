@@ -1,9 +1,7 @@
 """
 Sameera Sandaruwan
-
 To Do;
 * add more cmd args
-
 === Features ===
 * Fit
 * Fit step
@@ -13,11 +11,10 @@ To Do;
 * Show progress
 * Plotting
 * CMD Args
-
 """
 from __future__ import print_function
 import argparse
-from bass_util import prettyPrint
+from SkunkWork.utils import prettyPrint
 
 # Importing PyTorch tools
 import torch
@@ -108,7 +105,7 @@ class NeuralNet(nn.Module):
 
             # Forward pass
             output = self(data)
-            print(output.shape, type(output), '|', target.shape, type(target))
+            # print(output.shape, type(output), '|', target.shape, type(target))
             
             # Calculating loss
             loss = self.criterion(output, target)
