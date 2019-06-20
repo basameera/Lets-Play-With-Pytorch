@@ -22,6 +22,18 @@ all_metrics = [
     'accuracy'
 ]
 
+class dSet():
+
+    def __init__(self):
+
+        # Basics
+        super(dSet, self).__init__()
+        print('dSet init')
+
+    def compile(self):
+        """Configures the model for training.
+        """
+        print('dSet compile')
 
 class nnTrainer():
 
@@ -49,28 +61,13 @@ class nnTrainer():
         self.train_loss_hist = []
         self.valid_loss_hist = []
 
-    def compile(self, optimizer, lr=0.01, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss(reduction='sum'), metrics=None, loss_weights=None, sample_weight_mode=None, weighted_metrics=None, target_tensors=None):
+    def compile(self, optimizer, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss(reduction='sum'), metrics=None, loss_weights=None, sample_weight_mode=None, weighted_metrics=None, target_tensors=None):
         """Configures the model for training.
 
-        Arguments:
-            optimizer {[type]} -- [description]
-
-        Keyword Arguments:
-            lr {float} -- [description] (default: {0.01})
-            criterion {[type]} -- [description] (default: {nn.CrossEntropyLoss()})
-            valid_criterion {[type]} -- [description] (default: {nn.CrossEntropyLoss(reduction='sum')})
-            metrics {[type]} -- [description] (default: {None})
-            loss_weights {[type]} -- [description] (default: {None})
-            sample_weight_mode {[type]} -- [description] (default: {None})
-            weighted_metrics {[type]} -- [description] (default: {None})
-            target_tensors {[type]} -- [description] (default: {None})
-
-        Returns:
-            A `history` dict. It's a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).
         """
-        self.optim_type = optimizer
-        self.optimizer = None
-        self.lr = lr
+        # self.optim_type = optimizer
+        self.optimizer = optimizer
+        # self.lr = lr
         self.criterion = criterion
         self.valid_criterion = valid_criterion
         # TODO:
@@ -81,7 +78,7 @@ class nnTrainer():
         clog('compiled')
 
     def startup_routines(self):
-        self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
+        # self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
         if self.use_cuda:
             self.model.cuda()
 
