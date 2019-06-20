@@ -28,7 +28,7 @@ all_metrics = [
 class nnTrainer():
     """Sudoku Trainer
     """
-    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model', path_results='results/'):
+    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model', path_results='results\\'):
         
         # Basics
         super(nnTrainer, self).__init__()
@@ -94,7 +94,7 @@ class nnTrainer():
 
         # Switching off autograd
         with torch.no_grad():
-            output = []
+            out = []
             # Looping through data
             for input, target in validation_loader:
 
@@ -106,14 +106,18 @@ class nnTrainer():
                 # Forward pass
                 pred = self.model(input)
 
-                # MSE loss acc
-                pred = torch.round(pred)
-                target = torch.round(target)
+                # Forward pass
+                pred = self.model(input)
+                pred = pred.view(-1, 9, 9*9)
+                target = target.view(-1, 9*9)
 
-                output.append((pred.view(-1, 9, 9).cpu().numpy(),
+                pred = pred.argmax(dim=1)
+                pred += 1
+
+                out.append((pred.view(-1, 9, 9).cpu().numpy(),
                                target.view(-1, 9, 9).cpu().numpy()))
 
-            return output
+            return out
 
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
@@ -130,6 +134,10 @@ class nnTrainer():
 
             # Forward pass
             output = self.model(data)
+            output = output.view(-1, 9, 9*9)
+            target = target.view(-1, 9*9)
+            # print('out sz:', output.shape)
+            # print('target sz:', target.shape)
             # Calculating loss
             # loss = F.cross_entropy(output, target)
             loss = self.criterion(output, target)
@@ -172,20 +180,17 @@ class nnTrainer():
 
                 # Forward pass
                 output = self.model(input)
-
+                output = output.view(-1, 9, 9*9)
+                target = target.view(-1, 9*9)
                 # Calculating loss
-                # loss = F.cross_entropy(output, target, reduction='sum')
                 loss = self.valid_criterion(output, target)
                 self.valid_loss += loss.item()  # Adding to epoch loss
 
-                # accuracy - cross entropy
-                # get the index of the max log-probability
-                # pred = output.argmax(dim=1, keepdim=True)
-                # correct += pred.eq(target.view_as(pred)).sum().item()
+                pred = output.argmax(dim=1)            
+                pred = pred.view(-1, 9, 9)
+                pred += 1
+                target = target.view(-1, 9, 9)
 
-                # MSE loss acc
-                pred = torch.round(output)
-                target = torch.round(target)
                 correct += self.checkSudokuIsCorrect(pred, target)
 
             # for crossEntropy
@@ -213,9 +218,7 @@ class nnTrainer():
 
         # Looping through epochs
         for epoch in range(epochs):
-            self.fit_step(training_loader, epoch, epochs,
-                          show_progress)  # Optimizing
-
+            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)

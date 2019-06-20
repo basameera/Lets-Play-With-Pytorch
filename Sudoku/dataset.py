@@ -9,6 +9,7 @@ from PIL import Image
 import numpy as np
 import pandas as pd
 import time
+import torch.nn.functional as F
 
 
 def readCSVfile(path):
@@ -21,7 +22,21 @@ def readCSVfile(path):
         td.append(int(t[n]))
 
     xd, td = np.array(xd).reshape((1, 9, 9)), np.array(td).reshape((1, 9, 9))
-    print(xd.shape)
+    xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(
+        td, dtype=torch.int)
+    
+    # td = td - 1
+    # print(xd, xd.shape)
+
+    print(td, td.shape)
+    input = td.view(9*9)
+    
+    # input = torch.arange(0, 5)    
+    
+    print(input.shape)
+
+    OH = F.one_hot(input, num_classes=9)
+    print(OH, OH.shape)
 
 
 class datasetFromCSV_2D(Dataset):
@@ -41,7 +56,9 @@ class datasetFromCSV_2D(Dataset):
         xd, td = np.array(xd).reshape(
             (1, 9, 9)), np.array(td).reshape((1, 9, 9))
         xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(
-            td, dtype=torch.float)
+            td, dtype=torch.long)
+        td -= 1
+        # print('x', xd.shape, ' t', td.shape)
         return xd, td  # x, target
 
 # main funciton
@@ -49,7 +66,11 @@ class datasetFromCSV_2D(Dataset):
 
 def main():
     # Pytorch Dataset
-    print('Before Norm data ================================================')
+    path_data = '../data/'
+
+    # 3. data loading
+    path_data += 'sudoku/sudoku_small.csv'
+    readCSVfile(path_data)
 
 
 # run

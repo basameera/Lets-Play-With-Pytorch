@@ -9,7 +9,7 @@ sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
 from utils import cmdArgs, init_torch_seeds
 from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint, model_summary
 from dataset import datasetFromCSV_2D
-from model import sudokuCNN
+from model import sudokuCNN, CNN_SS
 import Trainer as swt
 from torch.utils.data import DataLoader, random_split
 # 
@@ -23,7 +23,6 @@ import datetime
 now = datetime.datetime.now()
 
 def main():
-    
     
     # 1. cmd args
     args = cmdArgs()
@@ -43,7 +42,7 @@ def main():
     settings['kwargs'] = kwargs
 
     settings['in_channels'] = 1
-    settings['out_channels'] = 1
+    settings['out_channels'] = 9
 
     settings['save_model'] = True
 
@@ -86,7 +85,7 @@ def main():
     clog('Data Loaders ready')
 
     # 4. Model
-    model = sudokuCNN(
+    model = CNN_SS(
         in_channels=settings['in_channels'], out_channels=settings['out_channels'])
 
     if settings['use cuda']:
@@ -123,8 +122,8 @@ def main():
     # optimizer = optim.SGD(model.parameters(), lr=1e-4)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    trainer.compile(optimizer, criterion=nn.MSELoss(),
-                    valid_criterion=nn.MSELoss())  # reduction='mean'
+    trainer.compile(optimizer, criterion=nn.CrossEntropyLoss(),
+                    valid_criterion=nn.CrossEntropyLoss())  # reduction='mean'
 
     pytorch_total_params = sum(p.numel()
                                for p in model.parameters() if p.requires_grad)
