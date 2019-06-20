@@ -7,7 +7,7 @@ import os
 sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
 # 
 from utils import cmdArgs, init_torch_seeds
-from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint
+from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint, model_summary
 from dataset import datasetFromCSV_2D
 from model import sudokuCNN
 import Trainer as swt
@@ -21,7 +21,6 @@ from torch import cuda
 import time
 import datetime
 now = datetime.datetime.now()
-from torchsummary import summary
 
 def main():
     
@@ -93,9 +92,7 @@ def main():
     if settings['use cuda']:
         model.cuda()
 
-    input_size = (1, 9, 9)
-    clog('Model Summary')
-    summary(model, input_size)
+    
 
     path_models += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
     path_results += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
@@ -113,8 +110,12 @@ def main():
         if args.ltype == 'f':
             clog('Loading full model from: {}'.format(args.lpath))
             model = torch.load(args.lpath)
+    
     clog('Model ready')
-    print(model.eval())
+    input_size = (1, 9, 9)
+    clog('Model Summary')
+    model_summary(model, input_size)
+    # print(model.eval())
 
     # 5. Trainer
     trainer = swt.nnTrainer(
