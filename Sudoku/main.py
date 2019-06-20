@@ -1,25 +1,28 @@
 """Lets solve Sudoku - https://www.kaggle.com/bryanpark/sudoku 
 Training of Sudoku NNs
 """
-
-
-import datetime
-import time
-
-import numpy as np
+import sys
+# path to the custom module
+sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
+# 
+from utils import cmdArgs, init_torch_seeds
+from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint
+from SkunkWork.pytorchCustomDataset import (datasetFromCSV_2D,
+                                            readCSVfile)
+from model import sudokuCNN
+import Trainer as swt
+from torch.utils.data import DataLoader, random_split
+# 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
+import torch.nn.functional as F
 from torch import cuda
-from torch.utils.data import DataLoader, random_split
+# 
+import numpy as np
+import time
+import datetime
 
-import SkunkWork.Trainer as swt
-from models import sudokuCNN, sudokuModel
-from SkunkWork.pytorchCustomDataset import (datasetFromCSV, datasetFromCSV_2D,
-                                            readCSVfile)
-from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint
-from utils import cmdArgs
 
 
 def main():
@@ -28,91 +31,76 @@ def main():
     2. settings based on cmd args (model, dataset, training, ...)
     3. data loading
     4. model instantiation
+        4.1 Loading models
     5. training
     6. saving
     7. evaluation / testing of model
     """
+    # 1. cmd args
     args = cmdArgs()
     prettyPrint(args.__dict__, 'cmd args')
+    # readCSVfile('data/sudoku/sudoku_small.csv')
 
-    # Pytorch Dataset
-    # data_folder_path = 'data/sudoku/sudoku_small.csv'
-    data_folder_path = 'data/sudoku/sudoku.csv'
+    
+    # cuda settings
+    use_cuda = not args.no_cuda and cuda.is_available()
+    kwargs = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
+    init_torch_seeds(use_cuda, seed=0)
 
-    CNN = True
-    save_model = True
+    # 2. settings
+    settings = dict()
+    settings['use cuda'] = use_cuda
+    settings['device'] = 'cpu' if (not use_cuda) else (
+        'cuda:'+str(cuda.current_device()))
+    settings['device'] = torch.device(settings['device'])
+    settings['kwargs'] = kwargs
 
-    if CNN:
-        # Conv
-        custom_dataset = datasetFromCSV_2D(data_folder_path)
-    else:
-        # Linear
-        custom_dataset = datasetFromCSV(data_folder_path)
+    settings['in_channels'] = 1
+    settings['out_channels'] = 1
+
+    settings['save_model'] = True
+
+    prettyPrint(settings, 'settings')
+
+    # 3. data loading
+    data_folder_path = '../data/sudoku/sudoku_small.csv'
+    # data_folder_path = 'data/sudoku/sudoku.csv'
+
+    custom_dataset = datasetFromCSV_2D(data_folder_path)
 
     percentage = 0.9
 
-    print('Dataset split radio (train, validation, test):',
+    clog('Dataset split radio (train, validation, test):',
           getSplitByPercentage(percentage, len(custom_dataset)))
 
     train_dataset, val_dataset, test_dataset = random_split(
         custom_dataset, getSplitByPercentage(percentage, len(custom_dataset)))
 
-    num_workers = 4
+    num_workers = kwargs['num_workers']
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=args.batch_size,
                               shuffle=False,
-                              pin_memory=True,
-                              num_workers=num_workers)
+                              **kwargs
+                             )
     valid_loader = DataLoader(dataset=val_dataset,
                               batch_size=args.valid_batch_size,
                               shuffle=True,
-                              pin_memory=True,
-                              num_workers=num_workers)
+                              **kwargs
+                              )
     test_loader = DataLoader(dataset=test_dataset,
                              batch_size=32,
                              shuffle=True,
-                             pin_memory=True,
-                             num_workers=num_workers)
+                             **kwargs
+                             )
 
     clog('Data Loaders ready')
 
-    settings = dict()
-    use_cuda = not args.no_cuda and cuda.is_available()
+    # 4. Model
+    model = sudokuCNN(
+        in_channels=settings['in_channels'], out_channels=settings['out_channels'])
 
-    # reproducibility
-    torch.manual_seed(0)
-    if use_cuda:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-    # settings
-    settings['use cuda'] = use_cuda
-    settings['device'] = 'cpu' if (not use_cuda) else (
-        'cuda:'+str(cuda.current_device()))
-    settings['device'] = torch.device(settings['device'])
-
-    settings['in_channels'] = 81
-    settings['out_channels'] = 81
-
-    if CNN:
-        settings['in_channels'] = 1
-        settings['out_channels'] = 1
-
-    prettyPrint(settings, 'settings')
-
-    clog('Model Ready')
-
-    if CNN:
-        # Conv
-        model = sudokuCNN(
-            in_channels=settings['in_channels'], out_channels=settings['out_channels'])
-    else:
-        # Linear
-        model = sudokuModel(
-            in_channels=settings['in_channels'], out_channels=settings['out_channels'])
-
-    # load model
+    # 4.1 Loading model
     '''
     load: true/false
     type: states/full
@@ -125,20 +113,24 @@ def main():
         if args.ltype == 'f':
             clog('Loading full model from: {}'.format(args.lpath))
             model = torch.load(args.lpath)
-
+    clog('Model ready')
     print(model.eval())
 
+    # 5. Trainer
     trainer = swt.nnTrainer(
         model=model, model_name=__file__, use_cuda=settings['use cuda'])
+    clog(trainer.__doc__)
+    # optimizer = optim.SGD(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
-    trainer.compile(optim.SGD, criterion=nn.MSELoss(),
+    trainer.compile(optimizer, criterion=nn.MSELoss(),
                     valid_criterion=nn.MSELoss())  # reduction='mean'
 
     pytorch_total_params = sum(p.numel()
                                for p in model.parameters() if p.requires_grad)
     clog('Model Total Trainable parameters: {}'.format(pytorch_total_params))
 
-    # Train model
+    # 5.1 Trainning model
     if args.train:
         clog('Training Started...\n')
         start_time = time.time()
@@ -151,13 +143,14 @@ def main():
         )
         clog('History', history)
 
-    # save model
-    if args.train and save_model:
+    # 6. Save model
+    if args.train and settings['save_model']:
         full = False
         if args.save_model == 'f':
             full = True
         trainer.saveModel(path='model_'+str(args.epochs), full=full)
 
+    # 7. Evaluation/Testing model
     if args.eval:
         # test model
         clog('Prediction Test model')
@@ -170,11 +163,10 @@ def main():
         print(T[0])
 
 
+
+
 # run
 if __name__ == '__main__':
     print('\n')
     clog(__file__)
-
-    # readCSVfile('data/sudoku/sudoku_small.csv')
-
     main()
