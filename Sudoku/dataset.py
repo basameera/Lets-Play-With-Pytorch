@@ -38,6 +38,15 @@ def readCSVfile(path):
     OH = F.one_hot(input, num_classes=9)
     print(OH, OH.shape)
 
+def newCSV(path):
+    df = pd.read_csv(path)
+    df = df[['quizzes', 'solutions']]
+    len = df.values.shape[0]
+    print(len//10)
+
+    new = df.iloc[:len//10]
+    new.to_csv('sudoku_10per.csv', encoding='utf-8')
+    
 
 class datasetFromCSV_2D(Dataset):
     def __init__(self, path):
@@ -69,8 +78,11 @@ def main():
     path_data = '../data/'
 
     # 3. data loading
-    path_data += 'sudoku/sudoku_small.csv'
-    readCSVfile(path_data)
+    # path_data += 'sudoku/sudoku_small.csv'
+    path_data += 'sudoku/sudoku.csv'
+    # readCSVfile(path_data)
+
+    # newCSV(path_data)
 
 
 # run

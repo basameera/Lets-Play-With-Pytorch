@@ -136,10 +136,7 @@ class nnTrainer():
             output = self.model(data)
             output = output.view(-1, 9, 9*9)
             target = target.view(-1, 9*9)
-            # print('out sz:', output.shape)
-            # print('target sz:', target.shape)
-            # Calculating loss
-            # loss = F.cross_entropy(output, target)
+
             loss = self.criterion(output, target)
             self.train_loss += loss.item()  # Adding to epoch loss
 

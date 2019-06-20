@@ -53,8 +53,8 @@ def main():
     path_results = 'results/'
 
     # 3. data loading
-    path_data += 'sudoku/sudoku_small.csv'
-    # path_data += 'sudoku/sudoku.csv'
+    # path_data += 'sudoku/sudoku_small.csv'
+    path_data += 'sudoku/sudoku_half.csv'
 
     custom_dataset = datasetFromCSV_2D(path_data)
 
@@ -120,7 +120,7 @@ def main():
     trainer = swt.nnTrainer(
         model=model, model_name=model.__class__.__name__, use_cuda=settings['use cuda'], path_results=path_results)
     # optimizer = optim.SGD(model.parameters(), lr=1e-4)
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
     trainer.compile(optimizer, criterion=nn.CrossEntropyLoss(),
                     valid_criterion=nn.CrossEntropyLoss())  # reduction='mean'
