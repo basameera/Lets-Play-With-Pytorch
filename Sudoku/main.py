@@ -2,13 +2,13 @@
 Training of Sudoku NNs
 """
 import sys
+import os
 # path to the custom module
 sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
 # 
 from utils import cmdArgs, init_torch_seeds
 from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint
-from SkunkWork.pytorchCustomDataset import (datasetFromCSV_2D,
-                                            readCSVfile)
+from dataset import datasetFromCSV_2D
 from model import sudokuCNN
 import Trainer as swt
 from torch.utils.data import DataLoader, random_split
@@ -16,31 +16,19 @@ from torch.utils.data import DataLoader, random_split
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 from torch import cuda
 # 
-import numpy as np
 import time
 import datetime
-
+now = datetime.datetime.now()
 
 
 def main():
-    """
-    1. cmd args
-    2. settings based on cmd args (model, dataset, training, ...)
-    3. data loading
-    4. model instantiation
-        4.1 Loading models
-    5. training
-    6. saving
-    7. evaluation / testing of model
-    """
+    
+    
     # 1. cmd args
     args = cmdArgs()
     prettyPrint(args.__dict__, 'cmd args')
-    # readCSVfile('data/sudoku/sudoku_small.csv')
-
     
     # cuda settings
     use_cuda = not args.no_cuda and cuda.is_available()
@@ -62,11 +50,15 @@ def main():
 
     prettyPrint(settings, 'settings')
 
-    # 3. data loading
-    data_folder_path = '../data/sudoku/sudoku_small.csv'
-    # data_folder_path = 'data/sudoku/sudoku.csv'
+    path_models = 'models/'
+    path_data = '../data/'
+    path_results = 'results/'
 
-    custom_dataset = datasetFromCSV_2D(data_folder_path)
+    # 3. data loading
+    path_data += 'sudoku/sudoku_small.csv'
+    # path_data += 'sudoku/sudoku.csv'
+
+    custom_dataset = datasetFromCSV_2D(path_data)
 
     percentage = 0.9
 
@@ -75,8 +67,6 @@ def main():
 
     train_dataset, val_dataset, test_dataset = random_split(
         custom_dataset, getSplitByPercentage(percentage, len(custom_dataset)))
-
-    num_workers = kwargs['num_workers']
 
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=args.batch_size,
@@ -100,6 +90,12 @@ def main():
     model = sudokuCNN(
         in_channels=settings['in_channels'], out_channels=settings['out_channels'])
 
+    input_size = (1, 9, 9)
+    model.summary(input_size)
+
+    path_models += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
+    path_results += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
+    
     # 4.1 Loading model
     '''
     load: true/false
@@ -118,8 +114,7 @@ def main():
 
     # 5. Trainer
     trainer = swt.nnTrainer(
-        model=model, model_name=__file__, use_cuda=settings['use cuda'])
-    clog(trainer.__doc__)
+        model=model, model_name=model.__class__.__name__, use_cuda=settings['use cuda'], path_results=path_results)
     # optimizer = optim.SGD(model.parameters(), lr=1e-4)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
@@ -132,6 +127,7 @@ def main():
 
     # 5.1 Trainning model
     if args.train:
+        if not os.path.exists(path_models): os.makedirs(path_models)
         clog('Training Started...\n')
         start_time = time.time()
         history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,

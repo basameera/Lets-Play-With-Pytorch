@@ -16,7 +16,6 @@ import torch.nn as nn
 from torch import cuda
 
 # Importing other libraries
-import numpy as np
 import matplotlib.pyplot as plt
 import time
 # custom classes and functions
@@ -29,13 +28,13 @@ all_metrics = [
 class nnTrainer():
     """Sudoku Trainer
     """
-    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model'):
+    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model', path_results='results/'):
         
         # Basics
         super(nnTrainer, self).__init__()
         self.model = model
         self.model_name = model_name.split('.')[0]
-        self.results_path = 'results'
+        self.results_path = path_results
         if not os.path.exists(self.results_path):
             os.makedirs(self.results_path)
 
@@ -268,7 +267,7 @@ class nnTrainer():
         return eq.sum().item()
 
     def save_loss(self):
-        path = self.results_path + '/' + self.model_name + '_loss_data.json'
+        path = self.results_path + self.model_name + '_loss_data.json'
         clog('Saving Loss to file:', path)
         data = dict()
         data['train_loss'] = self.train_loss_hist
@@ -278,7 +277,7 @@ class nnTrainer():
             json.dump(data, outfile, ensure_ascii=False, indent=2)
 
     def load_loss(self):
-        path = self.results_path + '/' + self.model_name + '_loss_data.json'
+        path = self.results_path + self.model_name + '_loss_data.json'
         clog('Loading Loss from file:', path)
         with open(path, 'r') as jfile:
             jdata = json.loads(jfile.read())
@@ -296,7 +295,7 @@ class nnTrainer():
         else:  # model_states
             path += '_states'
 
-        path = self.results_path+'/' + self.model_name + '_' + path
+        path = self.results_path + self.model_name + '_' + path
 
         if not '.pth' in path:
             path += '.pth'
@@ -328,7 +327,7 @@ class nnTrainer():
         plt.legend(loc='upper right')
 
         # saving plot
-        path = self.results_path+'/'+plot_name
+        path = self.results_path + plot_name
         clog('Saving loss plot: {}'.format(path))
         plt.savefig(path)
 

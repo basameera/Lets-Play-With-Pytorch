@@ -1,13 +1,16 @@
-"""Python Tools by Bassandaruwan"""
+"""SkunkWork Utils"""
 import os
 from PIL import Image
 import datetime
+import json
+
 
 def clog(*args):
     msg = '>>> '+str(datetime.datetime.now()).split('.')[0] + ' :'
     for s in args:
         msg = msg + ' ' + str(s)
     print(msg)
+
 
 def printLine(len, end='\n'):
     if isinstance(len, int):
@@ -99,10 +102,10 @@ def prettyPrint(input, heading='', prev_indent=0):
 
 def getListOfFiles(sourcePath, ext=['.jpg', '.png']):
     """getListOfFiles
-    
+
     Arguments:
         sourcePath {[type]} -- [description]
-    
+
     Keyword Arguments:
         ext {list} -- [description] (default: {['.jpg', '.png']})
     """
@@ -138,6 +141,7 @@ def getDatasetSizeOnDisk(fileList):
         ext = 'kB'
     return size, ext
 
+
 def getSplitByPercentage(train_percentage=0.8, len=0):
     if train_percentage > 0.0 and train_percentage < 1.0:
         train_p = int(train_percentage*len)
@@ -145,14 +149,6 @@ def getSplitByPercentage(train_percentage=0.8, len=0):
         return [train_p, valid_p, len - train_p - valid_p]
     else:
         raise ValueError('Value should be between 0 and 1.')
-
-def imgResize(fileList, size=200, save_folder='save'):
-    size = 256, 256
-    for id, path in enumerate(fileList):
-        print(id, path)
-        im = Image.open(path)
-        im = im.resize(size, Image.ANTIALIAS)
-        im.save(save_folder+'/'+str(id)+'.jpg')
 
 
 def imgResize(source_folder='data', destination_folder='save', size=256, keep_aspect_ratio=True):
@@ -174,6 +170,7 @@ def imgResize(source_folder='data', destination_folder='save', size=256, keep_as
         print(new_size)
         im = im.resize(new_size, Image.ANTIALIAS)
         im.save(destination_folder+'/'+str(id)+'.jpg')
+
 
 def read_json(path='results/loss_data.json'):
     with open(path, 'r') as jfile:
@@ -232,23 +229,6 @@ def main():
             "tensorboardX": True,
         }
     }
-
-    # prettyPrint(dict(config))
-    # prettyPrint(dict(config), 'config')
-
-    filesCS = getListOfFiles('data/old/CS')
-    filesMD = getListOfFiles('data/old/MD')
-
-    print('cs data len', len(filesCS))
-    print('md data len', len(filesMD))
-
-    print('cs data size', getDatasetSizeOnDisk(filesCS))
-    print('md data size', getDatasetSizeOnDisk(filesMD))
-
-    # imgResize(source_folder='data/old/MD', destination_folder='data/new/MD')
-
-    clog('someting')
-    clog('sdfsdf', 'sdfsdfsdlfjsdfj')
 
 
 # run

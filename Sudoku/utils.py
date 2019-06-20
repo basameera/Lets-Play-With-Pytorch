@@ -1,5 +1,7 @@
+"""Sudoku Utils"""
 import argparse
 import torch
+
 
 def cmdArgs():
     parser = argparse.ArgumentParser(
@@ -40,11 +42,13 @@ def cmdArgs():
                         help='Save the loss plot as .png')
     return parser.parse_args()
 
+
 def init_torch_seeds(cuda, seed=0):
     torch.manual_seed(seed)
     if cuda:
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
+
 
 if __name__ == "__main__":
     pass
