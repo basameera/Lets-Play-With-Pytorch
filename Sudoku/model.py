@@ -4,7 +4,7 @@ In descending order
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchsummary import *
+# from torchsummary import *
 
 class sudokuCNN(nn.Module):
     """Model Type 2 (MT2)
@@ -46,9 +46,6 @@ class sudokuCNN(nn.Module):
         # print('conv3:', x.shape)
         # raise NotImplementedError
         return x
-
-    def summary(self, inp_res):
-        summary(self, inp_res)
 
 
 class sudokuModel(nn.Module):

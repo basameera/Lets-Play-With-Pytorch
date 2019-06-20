@@ -21,7 +21,7 @@ from torch import cuda
 import time
 import datetime
 now = datetime.datetime.now()
-
+from torchsummary import summary
 
 def main():
     
@@ -90,8 +90,12 @@ def main():
     model = sudokuCNN(
         in_channels=settings['in_channels'], out_channels=settings['out_channels'])
 
+    if settings['use cuda']:
+        model.cuda()
+
     input_size = (1, 9, 9)
-    model.summary(input_size)
+    clog('Model Summary')
+    summary(model, input_size)
 
     path_models += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
     path_results += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
