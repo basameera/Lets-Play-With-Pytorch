@@ -1,8 +1,12 @@
-"""Project Doc String - Python program tempalte"""
+"""Sudoku Trainer"""
 
 # imports
 from __future__ import print_function
-from .utils import prettyPrint, clog
+import sys
+# path to the custom module
+sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
+
+from SkunkWork.utils import prettyPrint, clog
 import json
 import os
 
@@ -12,7 +16,6 @@ import torch.nn as nn
 from torch import cuda
 
 # Importing other libraries
-import numpy as np
 import matplotlib.pyplot as plt
 import time
 # custom classes and functions
@@ -22,16 +25,16 @@ all_metrics = [
     'accuracy'
 ]
 
-
 class nnTrainer():
-
-    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model'):
-
+    """Sudoku Trainer
+    """
+    def __init__(self, model, use_cuda=None, model_name='nnTrainer_model', path_results='results\\'):
+        
         # Basics
         super(nnTrainer, self).__init__()
         self.model = model
         self.model_name = model_name.split('.')[0]
-        self.results_path = 'results'
+        self.results_path = path_results
         if not os.path.exists(self.results_path):
             os.makedirs(self.results_path)
 
@@ -49,28 +52,13 @@ class nnTrainer():
         self.train_loss_hist = []
         self.valid_loss_hist = []
 
-    def compile(self, optimizer, lr=0.01, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss(reduction='sum'), metrics=None, loss_weights=None, sample_weight_mode=None, weighted_metrics=None, target_tensors=None):
+    def compile(self, optimizer, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss(reduction='sum'), metrics=None, loss_weights=None, sample_weight_mode=None, weighted_metrics=None, target_tensors=None):
         """Configures the model for training.
 
-        Arguments:
-            optimizer {[type]} -- [description]
-
-        Keyword Arguments:
-            lr {float} -- [description] (default: {0.01})
-            criterion {[type]} -- [description] (default: {nn.CrossEntropyLoss()})
-            valid_criterion {[type]} -- [description] (default: {nn.CrossEntropyLoss(reduction='sum')})
-            metrics {[type]} -- [description] (default: {None})
-            loss_weights {[type]} -- [description] (default: {None})
-            sample_weight_mode {[type]} -- [description] (default: {None})
-            weighted_metrics {[type]} -- [description] (default: {None})
-            target_tensors {[type]} -- [description] (default: {None})
-
-        Returns:
-            A `history` dict. It's a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).
         """
-        self.optim_type = optimizer
-        self.optimizer = None
-        self.lr = lr
+        # self.optim_type = optimizer
+        self.optimizer = optimizer
+        # self.lr = lr
         self.criterion = criterion
         self.valid_criterion = valid_criterion
         # TODO:
@@ -81,7 +69,7 @@ class nnTrainer():
         clog('compiled')
 
     def startup_routines(self):
-        self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
+        # self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
         if self.use_cuda:
             self.model.cuda()
 
@@ -106,7 +94,7 @@ class nnTrainer():
 
         # Switching off autograd
         with torch.no_grad():
-            output = []
+            out = []
             # Looping through data
             for input, target in validation_loader:
 
@@ -118,14 +106,18 @@ class nnTrainer():
                 # Forward pass
                 pred = self.model(input)
 
-                # MSE loss acc
-                pred = torch.round(pred)
-                target = torch.round(target)
+                # Forward pass
+                pred = self.model(input)
+                pred = pred.view(-1, 9, 9*9)
+                target = target.view(-1, 9*9)
 
-                output.append((pred.view(-1, 9, 9).cpu().numpy(),
+                pred = pred.argmax(dim=1)
+                pred += 1
+
+                out.append((pred.view(-1, 9, 9).cpu().numpy(),
                                target.view(-1, 9, 9).cpu().numpy()))
 
-            return output
+            return out
 
     def fit_step(self, training_loader, epoch, n_epochs, show_progress=False):
 
@@ -142,8 +134,9 @@ class nnTrainer():
 
             # Forward pass
             output = self.model(data)
-            # Calculating loss
-            # loss = F.cross_entropy(output, target)
+            output = output.view(-1, 9, 9*9)
+            target = target.view(-1, 9*9)
+
             loss = self.criterion(output, target)
             self.train_loss += loss.item()  # Adding to epoch loss
 
@@ -184,20 +177,17 @@ class nnTrainer():
 
                 # Forward pass
                 output = self.model(input)
-
+                output = output.view(-1, 9, 9*9)
+                target = target.view(-1, 9*9)
                 # Calculating loss
-                # loss = F.cross_entropy(output, target, reduction='sum')
                 loss = self.valid_criterion(output, target)
                 self.valid_loss += loss.item()  # Adding to epoch loss
 
-                # accuracy - cross entropy
-                # get the index of the max log-probability
-                # pred = output.argmax(dim=1, keepdim=True)
-                # correct += pred.eq(target.view_as(pred)).sum().item()
+                pred = output.argmax(dim=1)            
+                pred = pred.view(-1, 9, 9)
+                pred += 1
+                target = target.view(-1, 9, 9)
 
-                # MSE loss acc
-                pred = torch.round(output)
-                target = torch.round(target)
                 correct += self.checkSudokuIsCorrect(pred, target)
 
             # for crossEntropy
@@ -225,9 +215,7 @@ class nnTrainer():
 
         # Looping through epochs
         for epoch in range(epochs):
-            self.fit_step(training_loader, epoch, epochs,
-                          show_progress)  # Optimizing
-
+            self.fit_step(training_loader, epoch, epochs, show_progress)  # Optimizing
             if validation_loader != None:  # Perform validation?
                 # Calculating validation loss
                 self.validation_step(validation_loader, show_progress)
@@ -279,7 +267,7 @@ class nnTrainer():
         return eq.sum().item()
 
     def save_loss(self):
-        path = self.results_path + '/' + self.model_name + '_loss_data.json'
+        path = self.results_path + self.model_name + '_loss_data.json'
         clog('Saving Loss to file:', path)
         data = dict()
         data['train_loss'] = self.train_loss_hist
@@ -289,7 +277,7 @@ class nnTrainer():
             json.dump(data, outfile, ensure_ascii=False, indent=2)
 
     def load_loss(self):
-        path = self.results_path + '/' + self.model_name + '_loss_data.json'
+        path = self.results_path + self.model_name + '_loss_data.json'
         clog('Loading Loss from file:', path)
         with open(path, 'r') as jfile:
             jdata = json.loads(jfile.read())
@@ -307,7 +295,7 @@ class nnTrainer():
         else:  # model_states
             path += '_states'
 
-        path = self.results_path+'/' + self.model_name + '_' + path
+        path = self.results_path + self.model_name + '_' + path
 
         if not '.pth' in path:
             path += '.pth'
@@ -339,7 +327,7 @@ class nnTrainer():
         plt.legend(loc='upper right')
 
         # saving plot
-        path = self.results_path+'/'+plot_name
+        path = self.results_path + plot_name
         clog('Saving loss plot: {}'.format(path))
         plt.savefig(path)
 

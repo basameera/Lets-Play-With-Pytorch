@@ -1,8 +1,12 @@
 """Lets solve Sudoku - https://www.kaggle.com/bryanpark/sudoku """
 # imports
+import os
+import sys
+# path to the custom module
+sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
 from SkunkWork.utils import prettyPrint, clog, getSplitByPercentage
 from SkunkWork.pytorchCustomDataset import readCSVfile, datasetFromCSV, ImageClassDatasetFromFolder, datasetFromCSV_2D
-import SkunkWork.Trainer as swt
+from SkunkWork import swTrainer as swt
 #
 from torch.utils.data import DataLoader, random_split
 import torch

@@ -4,7 +4,47 @@ In descending order
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+# from torchsummary import *
 
+class CNN_SS(nn.Module):
+    """Use semantic segmentation techniques to get a probability output, which indicate
+    the relenace of values (1 to 9) for each position.
+    """
+
+    def __init__(self, in_channels=1, out_channels=1):
+
+        # Basics
+        super(CNN_SS, self).__init__()
+        self.version = 'MT3'
+        # Initializing all layers
+        self.conv1 = nn.Conv2d(in_channels, 20, 3)
+        self.conv2 = nn.Conv2d(20, 50, 3)
+        self.conv3 = nn.Conv2d(50, 100, 3)
+
+        self.deconv1 = nn.ConvTranspose2d(100, 50, 3)
+        self.deconv2 = nn.ConvTranspose2d(50, 20, 3)
+        self.deconv3 = nn.ConvTranspose2d(20, out_channels, 3)
+
+    def forward(self, input):
+        x = F.relu(self.conv1(input))
+        # print('conv1:', x.shape)
+
+        x = F.relu(self.conv2(x))
+        # print('conv2:', x.shape)
+
+        x = F.relu(self.conv3(x))
+        # print('conv3:', x.shape)
+
+        x = F.relu(self.deconv1(x))
+        # print('conv3:', x.shape)
+
+        x = F.relu(self.deconv2(x))
+        # print('conv3:', x.shape)
+
+        x = F.softmax(self.deconv3(x), dim=1)
+        # print('conv3:', x.shape)
+        # raise NotImplementedError
+        return x
 
 class sudokuCNN(nn.Module):
     """Model Type 2 (MT2)
@@ -16,7 +56,7 @@ class sudokuCNN(nn.Module):
 
         # Basics
         super(sudokuCNN, self).__init__()
-
+        self.version = 'MT2'
         # Initializing all layers
         self.conv1 = nn.Conv2d(in_channels, 20, 3)
         self.conv2 = nn.Conv2d(20, 50, 3)
@@ -58,7 +98,7 @@ class sudokuModel(nn.Module):
 
         # Basics
         super(sudokuModel, self).__init__()
-
+        self.version = 'MT1'
         # Initializing all layers
         self.fc1 = nn.Linear(in_channels, 100)
         self.fc2 = nn.Linear(100, 200)
@@ -73,4 +113,6 @@ class sudokuModel(nn.Module):
 
 
 if __name__ == "__main__":
-    pass
+
+    model = sudokuCNN()
+    print(model.__doc__)
