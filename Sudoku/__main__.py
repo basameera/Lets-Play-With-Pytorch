@@ -49,7 +49,7 @@ def main():
     prettyPrint(settings, 'settings')
 
     path_models = 'models/'
-    path_data = '../data/'
+    path_data = 'data/'
     path_results = 'results/'
 
     # 3. data loading
