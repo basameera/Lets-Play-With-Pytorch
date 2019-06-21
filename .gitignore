@@ -10,3 +10,5 @@ history/
 *.pth
 *.zip
 *.rar
+
+*.egg-info*

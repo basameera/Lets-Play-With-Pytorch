@@ -2,10 +2,6 @@
 
 # imports
 from __future__ import print_function
-import sys
-# path to the custom module
-sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
-
 from SkunkWork.utils import prettyPrint, clog
 import json
 import os

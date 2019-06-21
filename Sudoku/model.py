@@ -4,7 +4,6 @@ In descending order
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# from torchsummary import *
 
 class CNN_SS(nn.Module):
     """Use semantic segmentation techniques to get a probability output, which indicate

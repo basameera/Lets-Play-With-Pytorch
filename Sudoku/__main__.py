@@ -1,11 +1,8 @@
 """Lets solve Sudoku - https://www.kaggle.com/bryanpark/sudoku 
 Training of Sudoku NNs
 """
-import sys
-import os
-# path to the custom module
-sys.path.append(r'C:\Users\Sameera\Documents\Github\Lets-Play-With-Pytorch')
-# 
+
+import os 
 from utils import cmdArgs, init_torch_seeds
 from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint, model_summary
 from dataset import datasetFromCSV_2D
