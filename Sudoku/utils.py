@@ -29,13 +29,13 @@ def cmdArgs():
     parser.add_argument('--load', action='store_true', default=False,
                         help='Load the model: True/False')
     parser.add_argument('--ltype', type=str, default='s', metavar='',
-                        help='Type of the loading model, \'s\': only states, \'f\': full model (default: \'s\') (**Required for loading)')
+                        help=r"Type of the loading model, 's': only states, 'f': full model (default: 's') (**Required for loading)")
     parser.add_argument('--lpath', type=str, default='', metavar='',
-                        help='Path to the loading model. (e.g. \'path\\to\model\model_name.pth\') (**Required for loading)')
+                        help=r"Path to the loading model. (e.g. 'path\to\model\model_name.pth') (**Required for loading)")
 
     # save param
     parser.add_argument('--save-model', type=str, default='s', metavar='',
-                        help='Methods for saving model, \'s\': only states, \'f\': full model (default: \'s\')')
+                        help=r"Methods for saving model, 's': only states, 'f': full model (default: 's')")
     parser.add_argument('--save-best', action='store_true', default=False,
                         help='For Saving the current Best Model')
     parser.add_argument('--save-plot', action='store_true', default=True,
