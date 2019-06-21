@@ -1,4 +1,8 @@
 """SkunkWork setup.py
+https://python-packaging.readthedocs.io/en/latest/index.html
+
+Full Package Structure - https://python-packaging.readthedocs.io/en/latest/everything.html
+
 """
 from setuptools import setup
 # from setuptools import setup, find_packages
