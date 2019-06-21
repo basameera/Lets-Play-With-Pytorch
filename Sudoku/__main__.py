@@ -45,14 +45,13 @@ def main():
 
     prettyPrint(settings, 'settings')
 
-    path_models = 'models/'
     path_data = 'data/'
     path_results = 'results/'
 
     # 3. data loading
     # path_data += 'sudoku/sudoku_small.csv'
-    path_data += 'sudoku/sudoku_half.csv'
-
+    path_data += 'sudoku/sudoku.csv'
+    clog('Dataset:', path_data)
     custom_dataset = datasetFromCSV_2D(path_data)
 
     percentage = 0.9
@@ -88,11 +87,8 @@ def main():
     if settings['use cuda']:
         model.cuda()
 
-    
-
-    path_models += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
-    path_results += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-') + '/'
-    
+    path_results += model.__class__.__name__ + '_' + str(datetime.datetime.now()).split('.')[0].replace(':', '-').replace(' ', '_') + '/'
+    clog('Results path:', path_results)
     # 4.1 Loading model
     '''
     load: true/false
@@ -128,7 +124,6 @@ def main():
 
     # 5.1 Trainning model
     if args.train:
-        if not os.path.exists(path_models): os.makedirs(path_models)
         clog('Training Started...\n')
         start_time = time.time()
         history = trainer.fit(train_loader, valid_loader, epochs=args.epochs, save_best=args.save_best,

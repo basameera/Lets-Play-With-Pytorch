@@ -55,7 +55,7 @@ Then `netron [FILE]` or `import netron`; `netron.start('[FILE]')`
 ---
 
 ## To Do;
-- [ ] **SkunkWork as python package**
+- [ ] Python dependency searcher
 - [ ] **Trainer** - use of different **criterions - Why `reduction` in validation?**
 - [x] **Nvidia Drivers NOT available** - https://www.nvidia.com/download/driverResults.aspx/135394/en-us
 - [ ] **Trainer class** - Finish TODOs - https://keras.io/models/sequential/
@@ -78,3 +78,4 @@ Then `netron [FILE]` or `import netron`; `netron.start('[FILE]')`
 - [x] save loss data to JSON
 - [x] A way to print 10% of the batches while training
 - [x] Handling high res. image - inspire VGG16 Pytorch
+- [x] **SkunkWork as python package**
