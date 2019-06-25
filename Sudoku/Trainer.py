@@ -2,7 +2,7 @@
 
 # imports
 from __future__ import print_function
-from SkunkWork.utils import prettyPrint, clog
+from skunkwork.utils import prettyPrint, clog, model_summary
 import json
 import os
 
@@ -247,6 +247,7 @@ class nnTrainer():
     def predict(self, test_loader, show_progress=True):
         self.validation_step(test_loader, show_progress, name='Prediction')
 
+    # TODO: remove this from trainer
     def checkSudokuIsCorrect(self, pred, target):
         pred = pred.int()
         target = target.int()
@@ -261,6 +262,13 @@ class nnTrainer():
 
         # raise NotImplementedError
         return eq.sum().item()
+    
+    def summary(self, input_size=None):
+
+        if input_size==None:
+            raise ValueError('Input size should be similar to (1, a, b). Can\'t be None')
+
+        model_summary(self.model, input_size)
 
     def save_loss(self):
         path = self.results_path + self.model_name + '_loss_data.json'

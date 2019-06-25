@@ -4,7 +4,7 @@ Training of Sudoku NNs
 
 import os 
 from utils import cmdArgs, init_torch_seeds
-from SkunkWork.utils import clog, getSplitByPercentage, prettyPrint, model_summary
+from skunkwork.utils import clog, getSplitByPercentage, prettyPrint, model_summary
 from dataset import datasetFromCSV_2D
 from model import sudokuCNN, CNN_SS
 import Trainer as swt
@@ -104,16 +104,15 @@ def main():
             model = torch.load(args.lpath)
     
     clog('Model ready')
-    input_size = (1, 9, 9)
-    clog('Model Summary')
-    model_summary(model, input_size)
-    # print(model.eval())
 
     # 5. Trainer
     trainer = swt.nnTrainer(
         model=model, model_name=model.__class__.__name__, use_cuda=settings['use cuda'], path_results=path_results)
-    # optimizer = optim.SGD(model.parameters(), lr=1e-4)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
+
+    input_size = (1, 9, 9)
+    clog('Model Summary')
+    trainer.summary(input_size)
 
     trainer.compile(optimizer, criterion=nn.CrossEntropyLoss(),
                     valid_criterion=nn.CrossEntropyLoss())  # reduction='mean'
