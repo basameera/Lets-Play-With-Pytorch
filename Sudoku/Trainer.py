@@ -65,7 +65,6 @@ class nnTrainer():
         clog('compiled')
 
     def startup_routines(self):
-        # self.optimizer = self.optim_type(self.model.parameters(), lr=self.lr)
         if self.use_cuda:
             self.model.cuda()
 
@@ -104,14 +103,9 @@ class nnTrainer():
 
                 # Forward pass
                 pred = self.model(input)
-                pred = pred.view(-1, 9, 9*9)
-                target = target.view(-1, 9*9)
 
-                pred = pred.argmax(dim=1)
-                pred += 1
-
-                out.append((pred.view(-1, 9, 9).cpu().numpy(),
-                               target.view(-1, 9, 9).cpu().numpy()))
+                out.append((pred.cpu().numpy(),
+                               target.cpu().numpy()))
 
             return out
 
@@ -130,8 +124,10 @@ class nnTrainer():
 
             # Forward pass
             output = self.model(data)
-            output = output.view(-1, 9, 9*9)
-            target = target.view(-1, 9*9)
+            # output = output.view(-1, 9, 9*9)
+            # target = target.view(-1, 9*9)
+
+            # print('out:', output.shape, '| target:', target.shape)
 
             loss = self.criterion(output, target)
             self.train_loss += loss.item()  # Adding to epoch loss
@@ -173,18 +169,19 @@ class nnTrainer():
 
                 # Forward pass
                 output = self.model(input)
-                output = output.view(-1, 9, 9*9)
-                target = target.view(-1, 9*9)
+                # output = output.view(-1, 9, 9*9)
+                # target = target.view(-1, 9*9)
+
                 # Calculating loss
                 loss = self.valid_criterion(output, target)
                 self.valid_loss += loss.item()  # Adding to epoch loss
 
-                pred = output.argmax(dim=1)            
-                pred = pred.view(-1, 9, 9)
-                pred += 1
-                target = target.view(-1, 9, 9)
+                # pred = output.argmax(dim=1)            
+                # pred = pred.view(-1, 9, 9)
+                # pred += 1
+                # target = target.view(-1, 9, 9)
 
-                correct += self.checkSudokuIsCorrect(pred, target)
+                # correct += self.checkSudokuIsCorrect(pred, target)
 
             # for crossEntropy
             self.valid_loss /= len(validation_loader.dataset)

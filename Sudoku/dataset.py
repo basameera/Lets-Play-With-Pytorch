@@ -70,6 +70,30 @@ class datasetFromCSV_2D(Dataset):
         # print('x', xd.shape, ' t', td.shape)
         return xd, td  # x, target
 
+class datasetFromCSV(Dataset):
+    def __init__(self, path):
+        self.data = pd.read_csv(path)
+        self.data = self.data[['quizzes', 'solutions']].values
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, index):
+        x, t = self.data[index, 0], self.data[index, 1]
+        xd, td = [], []
+        for n in range(len(x)):
+            xd.append(int(x[n]))
+            td.append(int(t[n]))
+
+        # xd, td = np.array(xd).reshape((1, 81)), np.array(td).reshape((1, 81))
+        
+        # xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.long) # Cross entropy
+        xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.float) # MSE
+
+        # td -= 1
+        # print('x', xd.shape, ' t', td.shape)
+        return xd, td  # x, target
+
 # main funciton
 
 

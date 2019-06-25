@@ -5,6 +5,35 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class LinProbModel(nn.Module):
+    """(MV5)
+
+    Linear Model with Probability
+    """
+
+    def __init__(self, in_channels=1, out_channels=10):
+
+        # Basics
+        super(LinProbModel, self).__init__()
+        self.version = 'MV5'
+        # Initializing all layers
+        self.fc1 = nn.Linear(in_channels, 100)
+        self.fc2 = nn.Linear(100, 200)
+        self.fc3 = nn.Linear(200, 100)
+        self.fc4 = nn.Linear(100, out_channels)
+
+    def forward(self, input):
+        x = F.relu(self.fc1(input))
+        # print('l1:', x.shape)
+        x = F.relu(self.fc2(x))
+        # print('l2:', x.shape)
+        x = F.relu(self.fc3(x))
+        # print('l3:', x.shape)
+        # x = F.softmax(self.fc4(x), dim=1)
+        x = self.fc4(x)
+        # print('l4:', x.shape)
+        return x
+
 class CNN_SS(nn.Module):
     """Use semantic segmentation techniques to get a probability output, which indicate
     the relenace of values (1 to 9) for each position.

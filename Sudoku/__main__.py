@@ -5,8 +5,8 @@ Training of Sudoku NNs
 import os 
 from utils import cmdArgs, init_torch_seeds
 from skunkwork.utils import clog, getSplitByPercentage, prettyPrint, model_summary
-from dataset import datasetFromCSV_2D
-from model import sudokuCNN, CNN_SS
+from dataset import datasetFromCSV
+from model import *
 import Trainer as swt
 from torch.utils.data import DataLoader, random_split
 # 
@@ -17,6 +17,7 @@ from torch import cuda
 # 
 import time
 import datetime
+import numpy as np
 now = datetime.datetime.now()
 
 def main():
@@ -38,8 +39,8 @@ def main():
     settings['device'] = torch.device(settings['device'])
     settings['kwargs'] = kwargs
 
-    settings['in_channels'] = 1
-    settings['out_channels'] = 9
+    settings['in_channels'] = 81
+    settings['out_channels'] = 81
 
     settings['save_model'] = True
 
@@ -49,10 +50,10 @@ def main():
     path_results = 'results/'
 
     # 3. data loading
-    # path_data += 'sudoku/sudoku_small.csv'
-    path_data += 'sudoku/sudoku.csv'
+    path_data += 'sudoku/sudoku_small.csv'
+    # path_data += 'sudoku/sudoku.csv'
     clog('Dataset:', path_data)
-    custom_dataset = datasetFromCSV_2D(path_data)
+    custom_dataset = datasetFromCSV(path_data)
 
     percentage = 0.9
 
@@ -81,8 +82,10 @@ def main():
     clog('Data Loaders ready')
 
     # 4. Model
-    model = CNN_SS(
+    model = LinProbModel(
         in_channels=settings['in_channels'], out_channels=settings['out_channels'])
+
+    clog('Model Version:', model.version)
 
     if settings['use cuda']:
         model.cuda()
@@ -110,12 +113,14 @@ def main():
         model=model, model_name=model.__class__.__name__, use_cuda=settings['use cuda'], path_results=path_results)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-    input_size = (1, 9, 9)
+    input_size = (1, 1, 9*9)
     clog('Model Summary')
+    print(model.eval())
     trainer.summary(input_size)
 
-    trainer.compile(optimizer, criterion=nn.CrossEntropyLoss(),
-                    valid_criterion=nn.CrossEntropyLoss())  # reduction='mean'
+    # trainer.compile(optimizer, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss())  # reduction='mean'
+    
+    trainer.compile(optimizer, criterion=nn.MSELoss(), valid_criterion=nn.MSELoss(reduction='mean'))  # reduction='mean'
 
     pytorch_total_params = sum(p.numel()
                                for p in model.parameters() if p.requires_grad)
@@ -149,9 +154,15 @@ def main():
         output = trainer.evaluate(test_loader)
 
         (P, T) = output[0]
+        P = np.round(P)
 
-        print(P[0])
-        print(T[0])
+        pp = P[0].reshape((9,9))
+        tt = T[0].reshape((9,9))
+
+        print('\n\tTarget\t\t\t|\t\tPrediction')
+        for i in range(tt.shape[0]):
+            print(tt[i], '\t|\t', pp[i])
+        print('')
 
 
 
