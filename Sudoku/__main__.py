@@ -40,7 +40,7 @@ def main():
     settings['kwargs'] = kwargs
 
     settings['in_channels'] = 81
-    settings['out_channels'] = 81
+    settings['out_channels'] = 9
 
     settings['save_model'] = True
 
@@ -87,6 +87,19 @@ def main():
 
     clog('Model Version:', model.version)
 
+    input_size = (81)
+    clog('Model Summary')
+    print(model.eval())
+    
+
+
+    # sz = (2, ) + input_size
+    x = torch.rand((2, 81))
+    print(x.shape)
+    out = model(x)
+    print(out.shape)
+
+
     if settings['use cuda']:
         model.cuda()
 
@@ -113,11 +126,7 @@ def main():
         model=model, model_name=model.__class__.__name__, use_cuda=settings['use cuda'], path_results=path_results)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-    input_size = (1, 1, 9*9)
-    clog('Model Summary')
-    print(model.eval())
     trainer.summary(input_size)
-
     # trainer.compile(optimizer, criterion=nn.CrossEntropyLoss(), valid_criterion=nn.CrossEntropyLoss())  # reduction='mean'
     
     trainer.compile(optimizer, criterion=nn.MSELoss(), valid_criterion=nn.MSELoss(reduction='mean'))  # reduction='mean'

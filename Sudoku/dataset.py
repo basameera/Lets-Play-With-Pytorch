@@ -86,7 +86,7 @@ class datasetFromCSV(Dataset):
             td.append(int(t[n]))
 
         # xd, td = np.array(xd).reshape((1, 81)), np.array(td).reshape((1, 81))
-        
+        # xd, td = np.array(xd).reshape((1, 81))
         # xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.long) # Cross entropy
         xd, td = torch.tensor(xd, dtype=torch.float), torch.tensor(td, dtype=torch.float) # MSE
 
