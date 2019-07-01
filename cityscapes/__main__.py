@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import time
 
-def resizeImage(img, scale_percent=20):
+def resizeImage(img, scale_percent=12.5):
     width = int(img.shape[1] * scale_percent / 100)
     height = int(img.shape[0] * scale_percent / 100)
     dim = (width, height)
@@ -18,6 +18,11 @@ def grayImage(img):
 def showImage(img, name='window'):
     cv2.imshow(name, img)
 
+def thresholdImage(img, threshold=101):
+    _, img = cv2.threshold(img, threshold-1, 255, cv2.THRESH_TOZERO)
+    _, img = cv2.threshold(img, threshold+1, 255, cv2.THRESH_TOZERO_INV)
+    _, img = cv2.threshold(img, threshold-1, 255, cv2.THRESH_BINARY)
+    return img
 
 def main():
     path_ = '/media/sameera/BASS/'
@@ -32,24 +37,24 @@ def main():
     clog(len(data), len(labels))
 
     # read images by cv2
-    for n in range(7, 10):
+    for n in range(1):
         clog(data[n], labels[n])
 
         # data
         img = cv2.imread(data[n])
         img = resizeImage(img)
+        
         showImage(img, data[n])
 
         # label
         img = cv2.imread(labels[n])
         img = resizeImage(img)
         img = grayImage(img)
-        # showImage(img, 'before')
+        print(img.shape)
+
 
         st = time.time()
-        _, img = cv2.threshold(img, 100, 255, cv2.THRESH_TOZERO)
-        _, img = cv2.threshold(img, 102, 255, cv2.THRESH_TOZERO_INV)
-        _, img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
+        img = thresholdImage(img, 101)
         clog(time.time()-st)
 
         showImage(img, labels[n])
